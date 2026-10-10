@@ -39,14 +39,24 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
     const minimumToFinish=stats.open===1?Math.max(1,stats.remaining-10):1;
     return {team,bid:Math.max(1,Math.min(stats.maxBid,Math.max(minimumToFinish,planned)))};
    }).sort((a,b)=>b.bid-a.bid||a.team-b.team);
-   const affordable=bids.filter(b=>b.bid>=floor);
+   const affordable=bids.filter(b=>b.bid>=Math.max(floor,open.find(x=>x.team===b.team).stats.open===1?Math.max(1,open.find(x=>x.team===b.team).stats.remaining-10):1));
    if(!affordable.length)continue;
-   const clearing=affordable.length>1?Math.min(affordable[0].bid,Math.max(floor,affordable[1].bid+1)):floor;
+   const winnerStats=open.find(x=>x.team===affordable[0].team).stats;
+   const reserve=Math.max(floor,winnerStats.open===1?Math.max(1,winnerStats.remaining-10):1);
+   const clearing=affordable.length>1?Math.min(affordable[0].bid,Math.max(reserve,affordable[1].bid+1)):reserve;
    choices.push({p,reference,bid:clearing,team:affordable[0].team});
    if(choices.length>=16)break;
   }
   if(!choices.length)throw Error("無法在真實溢價與剩餘預算下填滿陣容；請檢查 Yahoo 價格及競標設定，不能降價硬湊");
-  const chosen=choices[Math.floor(random()*Math.min(choices.length,8))];
+  // Nominate across the league rather than repeatedly feeding the first teams.
+  // Prioritize managers with open slots and substantial cash left to deploy.
+  const mostBehind=Math.max(...open.map(x=>x.stats.remaining/x.stats.open));
+  const urgent=choices.filter(x=>{
+   const st=open.find(y=>y.team===x.team).stats;
+   return st.remaining/st.open>=mostBehind*.85;
+  });
+  const pool=urgent.length?urgent:choices;
+  const chosen=pool[Math.floor(random()*Math.min(pool.length,8))];
   const stats=teamStats(state,chosen.team);
   const price=chosen.bid;
   state=addPick(state,{player:chosen.p.player,team:chosen.team,price});
