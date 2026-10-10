@@ -194,7 +194,7 @@ let batchResult=null;
 function loadArchive(){try{const x=JSON.parse(localStorage.getItem(mockArchiveKey(mode))||"null");return normalizeArchive(x);}catch{return null;}}
 async function storeArchive(data){
  // Save each roster once; recompute cross-run recommendations from stored stats.
- const compact={version:3,results:data.results.map(r=>({
+ const compact={version:3,modelVersion:2,results:data.results.map(r=>({
   seed:r.seed,scenario:r.scenario,mode:r.mode,winner:r.winner,metric:r.metric,
   teams:r.teams.map(t=>({
    team:t.team,rank:t.rank,score:t.score,spent:t.spent,bargain:t.bargain,
@@ -224,7 +224,9 @@ function showBatch(){
 }
 function renderTopTeams(){
  const root=$("batch-top-list");
- const best=recommendMockTeams(batchResult?.results||[],5);
+ let prices=[];try{prices=JSON.parse(localStorage.getItem("fantasy-draft-lab:v1:prices")||"[]");}catch{}
+ const best=batchResult?.modelVersion===2?recommendMockTeams(batchResult.results,5,Array.isArray(prices)?prices:[]):[];
+ if(batchResult?.modelVersion!==2){const note=document.createElement("p");note.className="hint";note.textContent="既有紀錄為舊版價格模型；請重新產生 100 場，才能取得 V2 推薦。";root.append(note);}else if(!best.length){const note=document.createElement("p");note.className="hint";note.textContent="目前沒有通過明星價格合理性檢查的推薦球隊。";root.append(note);}
  best.forEach((t,i)=>{
   const button=document.createElement("button");
   button.type="button";button.className="secondary";
@@ -268,7 +270,7 @@ $("batch-run").addEventListener("click",()=>{
    }
    $("batch-status").textContent="已完成 "+results.length+" / 100 場…";
    if(results.length<100){setTimeout(next,0);return;}
-   batchResult={results,ranked:[],count:100};
+   batchResult={results,ranked:[],count:100,modelVersion:2};
    const saved=await storeArchive(batchResult);showBatch();
    if(!saved)$("batch-status").textContent="100 場完成，但本機儲存空間不足；本次結果僅暫存。";
   }catch(e){$("batch-status").textContent="模擬中止（已完成 "+results.length+" 場）："+e.message;}
