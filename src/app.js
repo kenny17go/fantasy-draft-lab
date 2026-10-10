@@ -5,6 +5,7 @@ import {yahooProjectedToCsv} from "./yahoo-import.js";
 import {parseProjections,rankProjections} from "./projections.js";
 import {auctionValues} from "./auction.js";
 import {createMock,autoMockTo,mockAuctionStep,mockCandidates} from "./mock-draft.js";
+import {runMockBatch} from "./mock-batch.js";
 import {CATEGORIES,puntRankings,rotoStandings} from "./strategy.js";
 import {scarcityFactors,simulateDraft} from "./simulation.js";
 import {evaluateDraft} from "./evaluation.js";
@@ -17,7 +18,7 @@ const punt=new Set();
 let rankingSort={column:4,ascending:false};
 function load(m){try{const raw=localStorage.getItem(key(m));return raw?validateState(JSON.parse(raw),m):fresh(m)}catch(e){console.warn("無法載入本機資料",e);return fresh(m)}}
 function save(){localStorage.setItem(key(mode),JSON.stringify(state));}
-function cell(row,text){const td=document.createElement("td");td.textContent=String(text);row.append(td);}
+function cell(row,text){const td=document.createElement("td");td.textContent=String(text);row.append(td);return td;}
 function render(){const c=CONFIG[mode];$("punt-controls").hidden=mode!=="h2h";$("roto-controls").hidden=mode!=="roto";$("mode").value=mode;$("summary").replaceChildren();for(const [label,value] of [["隊伍",c.teams],["每隊預算","$"+c.budget],["每隊名額",c.slots],["總選秀名額",c.teams*c.slots]]){const el=document.createElement("div");el.className="metric";const s=document.createElement("span"),b=document.createElement("b");s.textContent=label;b.textContent=value;el.append(s,b);$("summary").append(el);}$("roster").textContent="位置配置："+c.roster;$("team").replaceChildren();$("teams").replaceChildren();for(let n=1;n<=c.teams;n++){const opt=document.createElement("option");opt.value=n;opt.textContent="Team "+n;$("team").append(opt);const t=teamStats(state,n),tr=document.createElement("tr");for(const value of ["Team "+n,t.count+"/"+c.slots,"$"+t.spent,"$"+t.remaining,"$"+t.maxBid,projectionPlayers.length?(()=>{const r=rosterForTeam(state,projectionPlayers,n);return r.assignment===null?"位置衝突":r.unknown?"待核對 "+r.unknown:"可配置";})():"未載入"])cell(tr,value);$("teams").append(tr);}$("history").replaceChildren();state.picks.forEach((p,i)=>{const tr=document.createElement("tr");for(const value of [i+1,p.player,"Team "+p.team,"$"+p.price])cell(tr,value);$("history").append(tr);});$("undo").disabled=!state.picks.length;if(projectionPlayers.length)displayRankings(projectionPlayers);}
 function checkPosition(pick){if(!projectionPlayers.length)return;const map=new Map(projectionPlayers.map(p=>[p.player.toLocaleLowerCase(),p]));const target=map.get(pick.player.trim().toLocaleLowerCase());if(!target)return;const existing=state.picks.filter(p=>p.team===Number(pick.team)).map(p=>map.get(p.player.toLocaleLowerCase())).filter(Boolean);if(!canAddToRoster(existing,target,mode))throw Error("球員位置無法排入該隊剩餘陣容");}
 function feedback(message){$("feedback").textContent=message;}
@@ -143,3 +144,14 @@ $("mock-auto").addEventListener("click",()=>{try{if(projectionPlayers.length<CON
 $("mock-next").addEventListener("click",()=>{try{if(!projectionPlayers.length)throw Error("請先匯入球員預測");const data=mockPriceData(),bid=Number($("mock-bid").value);if(!Number.isSafeInteger(bid)||bid<0)throw Error("出價請輸入 0（不競標）或正整數");const result=mockAuctionStep(mock,projectionPlayers,data.prices,data.values,bid);mock=result.mock;renderMock();$("mock-status").textContent+=" 本次 "+result.player+" 由 Team "+result.winner+" 以 $"+result.price+" 得標。";}catch(e){$("mock-status").textContent="競標失敗："+e.message;}});
 $("mock-reset").addEventListener("click",()=>{if(!confirm("重新開始獨立 Mock Draft？真實成交紀錄不受影響。"))return;mock=createMock(mode);renderMock();});
 renderMock();
+
+let batchResult=null;
+const batchSection=document.createElement("section");batchSection.className="panel";
+batchSection.innerHTML='<h2>100 次完整 Mock Draft｜球隊分析</h2><p class="hint">全自動模擬 14 隊競標，統計九項球隊能力。模擬價格不是 Yahoo 真實成交紀錄。</p><div class="actions"><button type="button" id="batch-run">執行 100 次完整模擬</button><button type="button" id="batch-clear" class="secondary">清除結果</button></div><p id="batch-status" role="status"></p><div class="table-wrap"><table><thead><tr><th>名次</th><th>模擬</th><th>隊伍</th><th>九項 Z</th><th>撿漏 $</th><th>競標情境</th></tr></thead><tbody id="batch-results"></tbody></table></div><details><summary>選取球隊的完整陣容</summary><div id="batch-detail"></div></details>';
+$("mock-auto").closest("section.panel").before(batchSection);
+function showBatch(){
+ const body=$("batch-results");body.replaceChildren();if(!batchResult)return;
+ batchResult.ranked.slice(0,40).forEach((t,i)=>{const tr=document.createElement("tr");for(const v of [i+1,"#"+t.run,"Team "+t.team,t.score.toFixed(2),t.bargain.toFixed(0),t.scenario])cell(tr,v);tr.addEventListener("click",()=>{$("batch-detail").replaceChildren();const heading=document.createElement("p");heading.textContent="模擬 #"+t.run+" Team "+t.team+"｜九項 Z "+t.score.toFixed(2)+"｜撿漏 $"+t.bargain.toFixed(0);$("batch-detail").append(heading);t.players.forEach(p=>{const row=document.createElement("p");row.textContent=p.player+" — $"+p.price;$("batch-detail").append(row);});$("batch-detail").parentElement.open=true;});body.append(tr);});
+}
+$("batch-run").addEventListener("click",()=>{const btn=$("batch-run");btn.disabled=true;$("batch-status").textContent="執行中…";setTimeout(()=>{try{const prices=mockPriceData().prices;batchResult=runMockBatch(projectionPlayers,prices,mode,100);showBatch();$("batch-status").textContent="完成 100 次模擬、共 "+batchResult.ranked.length+" 支球隊。點選排名可查看完整陣容。";}catch(e){$("batch-status").textContent="模擬未完成："+e.message;}finally{btn.disabled=false;}},0);});
+$("batch-clear").addEventListener("click",()=>{batchResult=null;showBatch();$("batch-detail").replaceChildren();$("batch-status").textContent="已清除分析結果";});
