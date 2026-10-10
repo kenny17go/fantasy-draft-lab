@@ -1,3 +1,4 @@
+import {parseProjections,rankProjections} from "./projections.js";
 import {CONFIG,fresh,teamStats,addPick,validateState} from "./model.js";
 const $=id=>document.getElementById(id),key=mode=>"fantasy-draft-lab:v1:"+mode;
 let mode="h2h",state;
@@ -13,3 +14,7 @@ $("reset").addEventListener("click",()=>{if(!confirm("確定清除目前 "+CONFI
 $("export").addEventListener("click",()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="fantasy-draft-"+mode+".json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);});
 $("import").addEventListener("change",async e=>{const file=e.target.files[0];if(!file)return;try{const incoming=validateState(JSON.parse(await file.text()),mode);if(!confirm("以匯入資料覆蓋目前聯盟紀錄？"))return;state=incoming;save();feedback("匯入成功");render();}catch(err){feedback("匯入失敗："+err.message);}finally{e.target.value="";}});
 state=load(mode);render();
+const projectionsKey="fantasy-draft-lab:v1:projections";
+function displayRankings(players){const ranking=document.getElementById("ranking"),status=document.getElementById("projection-status");ranking.replaceChildren();const ranked=rankProjections(players);ranked.forEach((p,i)=>{const tr=document.createElement("tr");for(const v of [i+1,p.player,p.positions.join("/"),p.gp,p.total.toFixed(2)])cell(tr,v);ranking.append(tr);});status.textContent=ranked.length+" 位球員已計算 9-Cat Z-Score（非 Auction 價格）";}
+document.getElementById("projections-import").addEventListener("change",async e=>{const file=e.target.files[0];if(!file)return;try{const players=parseProjections(await file.text());if(players.length<2)throw Error("至少需要兩位球員");displayRankings(players);localStorage.setItem(projectionsKey,JSON.stringify(players));}catch(err){document.getElementById("projection-status").textContent="匯入失敗："+err.message;}finally{e.target.value="";}});
+try{const saved=localStorage.getItem(projectionsKey);if(saved){const players=JSON.parse(saved);if(Array.isArray(players)&&players.length>=2)displayRankings(players);}}catch(err){console.warn("預測資料無法恢復",err);}
