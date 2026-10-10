@@ -75,7 +75,7 @@ $("yahoo-prices-import").addEventListener("click",()=>{try{
 document.querySelectorAll(".ranking-table thead th").forEach((th,i)=>{if(![1,3,4,5,6,7].includes(i))return;th.tabIndex=0;th.setAttribute("role","button");const toggle=()=>{rankingSort={column:i,ascending:rankingSort.column===i?!rankingSort.ascending:i===1};if(projectionPlayers.length)displayRankings(projectionPlayers);};th.addEventListener("click",toggle);th.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();toggle();}});});
 
 // Mobile-friendly sorting control; also works when a sticky header intercepts taps.
-document.getElementById("ranking-sort").addEventListener("change",e=>{const [column,direction]=e.target.value.split(":");rankingSort={column:/^\\d+$/.test(column)?Number(column):column,ascending:direction==="asc"};if(projectionPlayers.length)displayRankings(projectionPlayers);});
+document.getElementById("ranking-sort").addEventListener("change",e=>{const [column,direction]=e.target.value.split(":");rankingSort={column:Number.isNaN(Number(column))?column:Number(column),ascending:direction==="asc"};if(projectionPlayers.length)displayRankings(projectionPlayers);});
 
 // Dismiss the detail overlay without scrolling through 200 rows.
 document.getElementById("player-detail").addEventListener("click",e=>{if(e.target.id==="player-detail")e.currentTarget.hidden=true;});
