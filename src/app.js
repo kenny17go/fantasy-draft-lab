@@ -1,3 +1,4 @@
+import {recommendMockTeams} from "./mock-recommendations.js";
 import {parseYahooPrices,mergeYahooPrices} from "./yahoo-prices.js";
 import {makeBackup,readBackup} from "./backup.js";
 import {parseYahooMobileText,mergeProjectionPlayers} from "./yahoo-mobile.js";
@@ -132,14 +133,33 @@ let batchResult=null;
 function loadArchive(){try{const x=JSON.parse(localStorage.getItem(mockArchiveKey(mode))||"null");return Array.isArray(x?.results)?x:null;}catch{return null;}}
 function storeArchive(data){try{localStorage.setItem(mockArchiveKey(mode),JSON.stringify({version:2,results:data.results.map(r=>({seed:r.seed,scenario:r.scenario,mode:r.mode,winner:r.winner,metric:r.metric,teams:r.teams})),ranked:[]}));return true;}catch{return false;}}
 const batchSection=document.createElement("section");batchSection.className="panel";
-batchSection.innerHTML='<h2>Mock Draft 模擬紀錄庫</h2><p class="hint">每場 14 隊完整模擬；按場次查看最佳球隊、排名與陣容。結果是模型產生，並非 Yahoo 真實成交紀錄。僅保存在目前瀏覽器。</p><div class="actions"><button type="button" id="batch-run">產生 100 場 Mock Draft</button><button type="button" id="batch-clear" class="secondary">清除本機模擬紀錄</button></div><p id="batch-status" role="status"></p><label>選擇模擬場次 <select id="batch-select"></select></label><div class="table-wrap"><table><thead><tr><th>場內排名</th><th>隊伍</th><th>預估分數</th><th>花費</th><th>參考價差</th></tr></thead><tbody id="batch-results"></tbody></table></div><details id="batch-details"><summary>球隊完整陣容與成交價</summary><div id="batch-detail"></div></details>';
+batchSection.innerHTML='<h2>Mock Draft 模擬紀錄庫</h2><p class="hint">每場 14 隊完整模擬；按場次查看最佳球隊、排名與陣容。結果是模型產生，並非 Yahoo 真實成交紀錄。僅保存在目前瀏覽器。</p><div class="actions"><button type="button" id="batch-run">產生 100 場 Mock Draft</button><button type="button" id="batch-clear" class="secondary">清除本機模擬紀錄</button></div><p id="batch-status" role="status"></p><div id="batch-top"><h3>跨場最佳策略 Top 5</h3><p class="hint">跨場九項預測比較，前三名優先參考；非實際勝率。</p><div id="batch-top-list"></div></div><label>選擇模擬場次 <select id="batch-select"></select></label><div class="table-wrap"><table><thead><tr><th>場內排名</th><th>隊伍</th><th>預估分數</th><th>花費</th><th>參考價差</th></tr></thead><tbody id="batch-results"></tbody></table></div><details id="batch-details"><summary>球隊完整陣容與成交價</summary><div id="batch-detail"></div></details>';
 document.querySelector("#purchase").closest("section.panel").before(batchSection);
 function showBatch(){
- const select=$("batch-select"),body=$("batch-results");select.replaceChildren();body.replaceChildren();$("batch-detail").replaceChildren();
+ const select=$("batch-select"),body=$("batch-results");select.replaceChildren();body.replaceChildren();$("batch-detail").replaceChildren();$("batch-top-list").replaceChildren();
  if(!batchResult){$("batch-status").textContent="目前沒有保存的模擬紀錄";return;}
  batchResult.results.forEach((run,i)=>{const o=document.createElement("option");o.value=i;o.textContent="模擬 #"+(i+1)+" · 最佳 Team "+run.winner+" · "+run.scenario;select.append(o);});
+ renderTopTeams();
  renderRun(0);
  $("batch-status").textContent="已保存 "+batchResult.results.length+" 場模擬，點選場次及球隊查看結果。";
+}
+function renderTopTeams(){
+ const root=$("batch-top-list");
+ const best=recommendMockTeams(batchResult?.results||[],5);
+ best.forEach((t,i)=>{
+  const button=document.createElement("button");
+  button.type="button";button.className="secondary";
+  button.style.cssText="display:block;width:100%;text-align:left;white-space:normal;margin:8px 0";
+  button.textContent="Top "+(i+1)+" · 模擬 #"+t.run+" · Team "+t.team+" · 九項 Z "+t.overallScore.toFixed(2);
+  button.addEventListener("click",()=>{
+   $("batch-select").value=String(t.run-1);
+   renderRun(t.run-1);
+   const row=[...$("batch-results").rows].find(r=>r.cells[1]?.textContent==="Team "+t.team);
+   if(row)row.click();
+   $("batch-details").scrollIntoView({block:"start",behavior:"smooth"});
+  });
+  root.append(button);
+ });
 }
 function renderRun(index){
  const run=batchResult?.results[index];if(!run)return;
