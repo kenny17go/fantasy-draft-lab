@@ -3,4 +3,4 @@ const data="Players\tPosition\tGP*\tFGM/A*\tFTM/A*\t3PTM\tPTS\tREB\tAST\tST\tBLK
 test("Yahoo season totals convert to per-game stats and preserve attempts",()=>{const players=parseProjections(yahooProjectedToCsv(data));assert.equal(players.length,2);assert.equal(players[0].gp,71);assert.ok(Math.abs(players[0].fgm*71-736)<1e-8);assert.ok(Math.abs(players[1].fta*66-647)<1e-8);assert.deepEqual(players[1].positions,["PG","SG"]);});
 test("Yahoo import rejects incomplete data",()=>{assert.throws(()=>yahooProjectedToCsv(data.replace("3PTM\t","")),/缺少欄位|欄數|無效/);});
 
-test("rejects truncated Yahoo rows",()=>{assert.throws(()=>yahooProjectedToCsv(data.replace("100\\t55\\t240","100\\t55")),/欄數不符/);});
+test("rejects truncated Yahoo rows",()=>{assert.throws(()=>yahooProjectedToCsv(data.replace("100\t55\t240","100\t55")),/欄數不符/);});
