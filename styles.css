@@ -20,3 +20,5 @@
 #player-detail .detail-close{width:auto;margin:0 0 18px auto;padding:9px 16px;background:#294a72}
 #player-detail .detail-grid .metric b{overflow-wrap:anywhere;font-size:clamp(.85rem,3vw,1.1rem)}
 .ranking-sort-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0}.ranking-sort-controls select{width:min(100%,370px);margin:0}
+
+.category-sort-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0}.category-sort-controls>span{color:#b2c1d6;font-size:.85rem}.category-sort-buttons{display:flex;flex-wrap:wrap;gap:6px}.category-sort-button{width:auto;margin:0;padding:7px 10px;font-size:.8rem;background:#293e59}.category-sort-button[aria-pressed="true"]{background:#2877c9;outline:1px solid #8bc6ff}
