@@ -63,3 +63,9 @@ main>section.panel[hidden]{display:none!important}
 .team-name-fields label{display:flex;flex-direction:column;gap:5px;min-width:0}
 .team-name-fields input{width:100%;box-sizing:border-box}
 @media(max-width:420px){.team-name-fields{grid-template-columns:1fr 1fr;gap:8px}.app-tabs{padding:8px 6px;gap:4px}}
+
+.live-search-results{display:grid;gap:8px;margin:12px 0}
+.live-search-results button{display:block;width:100%;text-align:left;white-space:normal;overflow-wrap:anywhere;line-height:1.5;padding:11px 12px}
+#live-search{width:100%;box-sizing:border-box;font-size:16px}
+#live-lookup{scroll-margin-top:75px}
+#live-purchase{scroll-margin-top:75px}
