@@ -12,3 +12,5 @@
  .ranking-table thead th:nth-child(1),.ranking-table thead th:nth-child(2){z-index:4;background:#1b304c}
  .ranking-table tbody tr:hover td:nth-child(1),.ranking-table tbody tr:hover td:nth-child(2){background:#203653}
 }
+
+.ranking-table th.sortable{cursor:pointer;user-select:none;touch-action:manipulation}.ranking-table th.sortable::after{content:" ↕";font-size:.8em;opacity:.6}.ranking-table th.sortable[aria-sort="descending"]::after{content:" ↓";opacity:1}.ranking-table th.sortable[aria-sort="ascending"]::after{content:" ↑";opacity:1}.ranking-table th.sortable:focus-visible{outline:2px solid #8bc6ff;outline-offset:-2px}
