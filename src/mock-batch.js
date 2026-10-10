@@ -1,6 +1,7 @@
 import {CONFIG,addPick,fresh,teamStats} from "./model.js";
 import {rankProjections,teamCategories} from "./projections.js";
 import {canAddToRoster} from "./roster.js";
+import {evaluateDraft} from "./evaluation.js";
 const key=p=>p.player.trim().toLowerCase();
 const cats=["fgPct","ftPct","three","pts","reb","ast","stl","blk","tov"];
 function rng(seed){let s=seed>>>0;return ()=>((s=(Math.imul(s,1664525)+1013904223)>>>0)/4294967296);}
@@ -20,7 +21,7 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    const eligible=open.filter(x=>canAddToRoster(rosters[x.team-1],p,mode));
    if(!eligible.length)continue;
    const market=yahoo.get(key(p)),fallback=Math.max(1,Math.round(2+Math.max(0,p.total)*3));
-   const reference=market?.avg>0?market.avg:market?.proj>0?market.proj:fallback;
+   const reference=market?.proj>0?market.proj:market?.avg>0?market.avg:fallback;
    const bids=eligible.map(({team,stats})=>{
     const scenarioFactor=scenario==="aggressive"?1.18:scenario==="conservative"?.85:scenario==="mixed"?(team%2?1.18:.85):1;
     const factor=styles[team-1]*scenarioFactor*(.9+random()*.2);
@@ -32,7 +33,7 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
   if(!choices.length)throw Error("無合法球員可填滿隊伍；請檢查位置供給");
   const chosen=choices[Math.floor(random()*Math.min(choices.length,8))];
   const stats=teamStats(state,chosen.team);
-  const price=stats.open===1?stats.remaining:chosen.bid;
+  const price=chosen.bid;
   state=addPick(state,{player:chosen.p.player,team:chosen.team,price});
   rosters[chosen.team-1].push(chosen.p);
   log.push({player:chosen.p.player,team:chosen.team,price,reference:chosen.reference});
@@ -43,7 +44,10 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
   const spent=picks.reduce((s,p)=>s+p.price,0);
   return {team:i+1,players:picks,stats:teamCategories(roster),spent,reference,bargain:reference-spent};
  });
- return {seed,scenario,mode,teams,log};
+ const evaluation=evaluateDraft(state,players);
+ const order=new Map(evaluation.standings.map((x,i)=>[x.team,{rank:i+1,score:x.score}]));
+ teams.forEach(t=>{t.rank=order.get(t.team).rank;t.score=order.get(t.team).score;});
+ return {seed,scenario,mode,teams,log,winner:evaluation.standings[0].team,metric:evaluation.metric};
 }
 export function runMockBatch(players,prices=[],mode="h2h",count=100){
  if(!Number.isInteger(count)||count<1||count>100)throw Error("模擬次數須為 1–100");
