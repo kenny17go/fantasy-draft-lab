@@ -39,6 +39,9 @@ function displayRankings(players){
  document.querySelectorAll("[data-sort-category]").forEach(b=>{const k=b.dataset.sortCategory;const selected=k===rankingSort.column;b.setAttribute("aria-pressed",String(selected));b.textContent=(rankingFieldLabel[k]||k)+(selected?(rankingSort.ascending?" ↑":" ↓"):" ↕");});
  const ranking=document.getElementById("ranking"),status=document.getElementById("projection-status");ranking.replaceChildren();
  const ranked=mode==="h2h"&&punt.size?puntRankings(players,[...punt]):rankProjections(players);
+ // Category ranking functions may return summary rows without raw per-game stats.
+ const sourceByName=new Map(players.map(p=>[p.player,p]));
+ for(let i=0;i<ranked.length;i++)ranked[i]={...sourceByName.get(ranked[i].player),...ranked[i]};
  let estimates=null;try{estimates=auctionValues(players,mode,state);}catch(e){status.textContent="Auction 估值尚不可用："+e.message;}
  const prices=new Map(estimates?.values.map(p=>[p.player.trim().toLocaleLowerCase(),p.price])??[]);
  let yahooPrices=[];try{yahooPrices=JSON.parse(localStorage.getItem("fantasy-draft-lab:v1:prices")||"[]");}catch(e){console.warn("Yahoo 價格資料讀取失敗",e);}
