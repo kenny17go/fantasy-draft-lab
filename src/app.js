@@ -37,7 +37,9 @@ function displayRankings(players){
  projectionPlayers=players;
  document.querySelectorAll("[data-ranking-field]").forEach(cb=>cb.checked=visibleRankingFields.includes(cb.dataset.rankingField));
  document.querySelectorAll("[data-sort-category]").forEach(b=>{const k=b.dataset.sortCategory;const selected=k===rankingSort.column;b.setAttribute("aria-pressed",String(selected));b.textContent=(rankingFieldLabel[k]||k)+(selected?(rankingSort.ascending?" ↑":" ↓"):" ↕");});
- const ranking=document.getElementById("ranking"),status=document.getElementById("projection-status");ranking.replaceChildren();
+ const groups=document.getElementById("ranking-groups"),status=document.getElementById("projection-status");
+ const openGroups=new Set([...groups.querySelectorAll("details[open]")].map(d=>Number(d.dataset.group)));
+ groups.replaceChildren();
  const ranked=mode==="h2h"&&punt.size?puntRankings(players,[...punt]):rankProjections(players);
  // Category ranking functions may return summary rows without raw per-game stats.
  const sourceByName=new Map(players.map(p=>[p.player,p]));
@@ -52,9 +54,18 @@ function displayRankings(players){
  const sortValue=p=>sortKey==="name"?p.player:fieldValue(p,sortKey);
  ranked.sort((a,b)=>{const x=sortValue(a),y=sortValue(b);if(x==null)return y==null?0:1;if(y==null)return -1;const d=typeof x==="string"?x.localeCompare(y):x-y;return (rankingSort.ascending?d:-d)||a.player.localeCompare(b.player);});
  const shown=visibleRankingFields.slice();if(rankingFieldLabel[sortKey]&&!shown.includes(sortKey))shown.unshift(sortKey);
- const header=document.getElementById("ranking-headers");header.replaceChildren();
- for(const [name,key] of [["排名","rank"],["球員","name"],...shown.map(k=>[rankingFieldLabel[k],k])]){const th=document.createElement("th");th.textContent=name;th.dataset.field=key;if(key!=="rank"&&key!=="positions"){th.className="sortable";th.tabIndex=0;th.setAttribute("role","button");const selected=sortKey===key;th.setAttribute("aria-sort",selected?(rankingSort.ascending?"ascending":"descending"):"none");const toggle=()=>{const next=key==="name"?1:({gp:3,z:4,model:5,avg:6,proj:7}[key]??key);rankingSort={column:next,ascending:sortKey===key?!rankingSort.ascending:key==="name"||key==="tov"};displayRankings(projectionPlayers);};th.addEventListener("click",toggle);th.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();toggle();}});}header.append(th);}
- ranked.forEach((p,i)=>{const tr=document.createElement("tr");tr.dataset.player=p.player;tr.title="點選查看 9-Cat 明細";for(const value of [i+1,p.player,...shown.map(k=>formatValue(p,k))])cell(tr,value);if(shown[0]===sortKey&&rankingFieldLabel[sortKey])tr.children[2].classList.add("ranking-category-value");ranking.append(tr);});
+ const header=document.createElement("tr");
+ for(const [name,key] of [["排名","rank"],["球員","name"],...shown.map(k=>[rankingFieldLabel[k],k])]){const th=document.createElement("th");th.textContent=name;th.dataset.field=key;if(key!=="rank"&&key!=="positions"){th.className="sortable";th.tabIndex=0;th.setAttribute("role","button");const selected=sortKey===key;th.setAttribute("aria-sort",selected?(rankingSort.ascending?"ascending":"descending"):"none");}header.append(th);}
+ for(let start=0;start<ranked.length;start+=25){
+ const details=document.createElement("details");details.className="ranking-group";details.dataset.group=String(start/25);details.open=openGroups.has(start/25);
+ const summary=document.createElement("summary");summary.textContent=(start+1)+"–"+Math.min(start+25,ranked.length)+" 名球員";details.append(summary);
+ const wrap=document.createElement("div");wrap.className="table-wrap ranking-wrap";
+ const table=document.createElement("table");table.className="ranking-table";
+ const thead=document.createElement("thead");thead.append(header.cloneNode(true));table.append(thead);
+ const tbody=document.createElement("tbody");
+ ranked.slice(start,start+25).forEach((p,j)=>{const tr=document.createElement("tr");tr.dataset.player=p.player;tr.title="點選查看 9-Cat 明細";for(const value of [start+j+1,p.player,...shown.map(k=>formatValue(p,k))])cell(tr,value);if(shown[0]===sortKey&&rankingFieldLabel[sortKey])tr.children[2].classList.add("ranking-category-value");tbody.append(tr);});
+ table.append(tbody);wrap.append(table);details.append(wrap);groups.append(details);
+}
  if(estimates){const f=scarcityFactors(players,mode);status.textContent=ranked.length+" 位球員；剩餘預算 $"+estimates.remainingCash+"；位置壓力 C "+f.demand.C+"/"+f.supply.C+"（需求/可用供給，啟發式估值）";}
 }
 
@@ -86,7 +97,7 @@ function showPlayerDetail(player){
  const fields=[["FG%",p.fga?(100*p.fgm/p.fga).toFixed(1)+"%":"—"],["FT%",p.fta?(100*p.ftm/p.fta).toFixed(1)+"%":"—"],["3PM",p.three.toFixed(2)],["PTS",p.pts.toFixed(2)],["REB",p.reb.toFixed(2)],["AST",p.ast.toFixed(2)],["STL",p.stl.toFixed(2)],["BLK",p.blk.toFixed(2)],["TO",p.tov.toFixed(2)],["FGM/FGA",p.fgm.toFixed(2)+"/"+p.fga.toFixed(2)],["FTM/FTA",p.ftm.toFixed(2)+"/"+p.fta.toFixed(2)]];
  for(const [label,value] of fields){const item=document.createElement("div");item.className="metric";const small=document.createElement("span"),strong=document.createElement("b");small.textContent=label;strong.textContent=value;item.append(small,strong);grid.append(item);}details.append(grid);details.hidden=false;details.scrollTop=0;close.focus();
 }
-$("ranking").addEventListener("click",e=>{const tr=e.target.closest("tr");if(tr?.dataset.player)showPlayerDetail(tr.dataset.player);});
+$("ranking-groups").addEventListener("click",e=>{const tr=e.target.closest("tbody tr");if(tr?.dataset.player)showPlayerDetail(tr.dataset.player);});
 
 $("yahoo-prices-import").addEventListener("click",()=>{try{
  const incoming=parseYahooPrices($("yahoo-prices-paste").value);
@@ -108,3 +119,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")document.getElementB
 document.querySelectorAll("[data-ranking-field]").forEach(cb=>cb.addEventListener("change",()=>{visibleRankingFields=rankingFields.map(x=>x[0]).filter(k=>document.querySelector('[data-ranking-field="'+k+'"]').checked);localStorage.setItem(rankingFieldKey,JSON.stringify(visibleRankingFields));if(projectionPlayers.length)displayRankings(projectionPlayers);}));
 document.getElementById("ranking-columns-all").addEventListener("click",()=>{visibleRankingFields=rankingFields.map(x=>x[0]);localStorage.setItem(rankingFieldKey,JSON.stringify(visibleRankingFields));if(projectionPlayers.length)displayRankings(projectionPlayers);});
 document.getElementById("ranking-columns-default").addEventListener("click",()=>{visibleRankingFields=defaultRankingFields.slice();localStorage.setItem(rankingFieldKey,JSON.stringify(visibleRankingFields));if(projectionPlayers.length)displayRankings(projectionPlayers);});
+
+// Sort from any expanded group's header.
+$("ranking-groups").addEventListener("click",e=>{const th=e.target.closest("th.sortable");if(!th)return;const k=th.dataset.field;const current=typeof rankingSort.column==="number"?({1:"name",3:"gp",4:"z",5:"model",6:"avg",7:"proj"}[rankingSort.column]||"z"):rankingSort.column;rankingSort={column:k==="name"?1:({gp:3,z:4,model:5,avg:6,proj:7}[k]??k),ascending:current===k?!rankingSort.ascending:k==="name"||k==="tov"};displayRankings(projectionPlayers);});
+$("ranking-groups").addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches("th.sortable")){e.preventDefault();e.target.click();}});
