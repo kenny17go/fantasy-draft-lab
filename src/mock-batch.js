@@ -1,4 +1,4 @@
-import {buildLeagueMarket,leagueTarget} from "./league-market.js";
+import {buildLeagueMarket,leagueTarget,minimumLeagueBid} from "./league-market.js";
 import {CONFIG,addPick,fresh,teamStats} from "./model.js";
 import {rankProjections,teamCategories} from "./projections.js";
 import {canAddToRoster} from "./roster.js";
@@ -24,16 +24,19 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    const market=yahoo.get(key(p)),fallback=Math.max(1,Math.round(2+Math.max(0,p.total)*3));
    const reference=market?.avg>0?market.avg:market?.proj>0?market.proj:fallback;
    const target=leagueTarget(p,reference,league);
+   const floor=minimumLeagueBid(p,reference,league);
    const bids=eligible.map(({team,stats})=>{
     const scenarioFactor=scenario==="aggressive"?1.18:scenario==="conservative"?.85:scenario==="mixed"?(team%2?1.18:.85):1;
     const factor=styles[team-1]*scenarioFactor*(.9+random()*.2);
     return {team,bid:Math.max(1,Math.min(stats.maxBid,Math.round(target*factor)))};
    }).sort((a,b)=>b.bid-a.bid||a.team-b.team);
-   const clearing=bids.length>1?Math.min(bids[0].bid,bids[1].bid+1):bids[0].bid;
-   choices.push({p,reference,bid:clearing,team:bids[0].team});
+   const affordable=bids.filter(b=>b.bid>=floor);
+   if(!affordable.length)continue;
+   const clearing=affordable.length>1?Math.min(affordable[0].bid,Math.max(floor,affordable[1].bid+1)):floor;
+   choices.push({p,reference,bid:clearing,team:affordable[0].team});
    if(choices.length>=16)break;
   }
-  if(!choices.length)throw Error("無合法球員可填滿隊伍；請檢查位置供給");
+  if(!choices.length)throw Error("無法在真實溢價與剩餘預算下填滿陣容；請檢查 Yahoo 價格及競標設定，不能降價硬湊");
   const chosen=choices[Math.floor(random()*Math.min(choices.length,8))];
   const stats=teamStats(state,chosen.team);
   const price=chosen.bid;
