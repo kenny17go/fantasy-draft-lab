@@ -69,3 +69,30 @@ main>section.panel[hidden]{display:none!important}
 #live-search{width:100%;box-sizing:border-box;font-size:16px}
 #live-lookup{scroll-margin-top:75px}
 #live-purchase{scroll-margin-top:75px}
+
+/* Compact player detail sheet: backdrop fills screen; content does not. */
+#player-detail:not([hidden]){
+ display:flex;
+ align-items:flex-start;
+ justify-content:center;
+ padding:max(16px,env(safe-area-inset-top)) 12px max(16px,env(safe-area-inset-bottom));
+ background:rgba(5,12,24,.82);
+}
+#player-detail .player-detail-card{
+ width:min(100%,650px);
+ max-height:calc(100dvh - 32px);
+ overflow-y:auto;
+ overscroll-behavior:contain;
+ background:#142238;
+ border:1px solid #344b68;
+ border-radius:16px;
+ padding:16px;
+ box-shadow:0 16px 50px rgba(0,0,0,.35);
+}
+#player-detail .player-detail-card h3{margin:0 0 14px;line-height:1.35}
+#player-detail .player-detail-card .detail-close{margin:0 0 12px auto}
+@media(max-width:700px){
+ #player-detail .player-detail-card{padding:14px}
+ #player-detail .detail-grid{gap:8px}
+ #player-detail .detail-grid .metric{padding:10px 8px}
+}
