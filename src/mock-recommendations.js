@@ -2,7 +2,8 @@ import {buildLeagueMarket,priceReality} from "./league-market.js";
 // Compare simulated teams across all runs on a common nine-category scale.
 // This is a projection-based shortlist, not a real-world win probability.
 const CATS=["fgPct","ftPct","three","pts","reb","ast","stl","blk","tov"];
-export function recommendMockTeams(results,limit=5){
+export function recommendMockTeams(results,limit=5,prices=[]){
+ const market=buildLeagueMarket(prices);
  const all=results.flatMap((run,i)=>(run.teams||[]).map(t=>({...t,run:i+1,scenario:run.scenario})));
  if(!all.length)return [];
  const moments=Object.fromEntries(CATS.map(cat=>{
