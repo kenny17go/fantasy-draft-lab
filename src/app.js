@@ -6,6 +6,7 @@ import {parseProjections,rankProjections} from "./projections.js";
 import {auctionValues} from "./auction.js";
 import {CATEGORIES,puntRankings,rotoStandings} from "./strategy.js";
 import {scarcityFactors,simulateDraft} from "./simulation.js";
+import {evaluateDraft} from "./evaluation.js";
 import {rosterForTeam,canAddToRoster} from "./roster.js";
 import {CONFIG,fresh,teamStats,addPick,validateState} from "./model.js";
 const $=id=>document.getElementById(id),key=mode=>"fantasy-draft-lab:v1:"+mode;
@@ -30,7 +31,7 @@ function displayRankings(players){projectionPlayers=players;const ranking=docume
 document.getElementById("projections-import").addEventListener("change",async e=>{const file=e.target.files[0];if(!file)return;try{const players=parseProjections(await file.text());if(players.length<2)throw Error("至少需要兩位球員");displayRankings(players);localStorage.setItem(projectionsKey,JSON.stringify(players));}catch(err){document.getElementById("projection-status").textContent="匯入失敗："+err.message;}finally{e.target.value="";}});
 try{const saved=localStorage.getItem(projectionsKey);if(saved){const players=JSON.parse(saved);if(Array.isArray(players)&&players.length>=2)displayRankings(players);}}catch(err){console.warn("預測資料無法恢復",err);}
 
-document.getElementById("simulate").addEventListener("click",()=>{const output=document.getElementById("simulation-status");if(!projectionPlayers.length){output.textContent="請先匯入足量球員資料";return;}try{const result=simulateDraft(projectionPlayers,mode);output.textContent="模擬 PASS："+result.state.picks.length+" 人、14 隊合法陣容、成交總額 $"+result.state.picks.reduce((n,p)=>n+p.price,0)+"。此為獨立測試，不修改你的選秀紀錄。";}catch(err){output.textContent="模擬未通過："+err.message;}});
+document.getElementById("simulate").addEventListener("click",()=>{const output=document.getElementById("simulation-status");if(!projectionPlayers.length){output.textContent="請先匯入足量球員資料";return;}try{const result=simulateDraft(projectionPlayers,mode);const evaluation=evaluateDraft(result.state,projectionPlayers);const body=$("simulation-ranking");body.replaceChildren();evaluation.standings.forEach((t,i)=>{const tr=document.createElement("tr");for(const value of [i+1,"Team "+t.team,mode==="roto"?t.score.toFixed(1):((t.score*100).toFixed(1)+"%"),mode==="roto"?"—":t.wins+" / "+t.ties+" / "+t.losses])cell(tr,value);body.append(tr);});output.textContent="模擬完成："+result.state.picks.length+" 人；"+evaluation.metric+"。注意：目前仍為固定順序、非市場競標的測試模擬，排名不能作為選秀建議；不修改你的真實紀錄。";}catch(err){output.textContent="模擬未通過："+err.message;}});
 
 const labels={fgPct:"FG%",ftPct:"FT%",three:"3PM",pts:"PTS",reb:"REB",ast:"AST",stl:"STL",blk:"BLK",tov:"TO"};
 for(const cat of CATEGORIES){const label=document.createElement("label");label.className="punt-choice";const cb=document.createElement("input");cb.type="checkbox";cb.addEventListener("change",()=>{if(cb.checked)punt.add(cat);else punt.delete(cat);if(projectionPlayers.length)displayRankings(projectionPlayers);});label.append(cb,document.createTextNode(" Punt "+labels[cat]));$("punt-options").append(label);}
