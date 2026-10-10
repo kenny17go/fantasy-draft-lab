@@ -15,20 +15,28 @@ export function leagueTarget(player,reference,market){
  if(rank<=5)factor=1.32;
  else if(rank<=15)factor=1.2;
  else if(base>=25)factor=1.1;
- else if(base>=10)factor=.87;
- else factor=.7;
+ else if(base>5)factor=1.06;
+ else factor=.8;
  return Math.max(1,Math.round(base*factor));
 }
 // An elite bargain is an invalid reference strategy, even when its nine-cat score is high.
+export function minimumLeagueBid(player,reference,market){
+ const avg=market.avg.get(key(player));
+ const base=Number(avg)>0?avg:Number(reference);
+ if(!(base>5))return 1;
+ const rank=market.ranks.get(key(player));
+ const premium=rank<=5?1.2:rank<=15?1.12:base>=25?1.05:1.01;
+ return Math.max(2,Math.floor(base*premium)+1);
+}
 export function priceReality(team,market){
  let checked=0,invalid=0,elite=0;
  for(const pick of team.players||[]){
   const avg=market.avg.get(key(pick));
-  if(!(avg>=25))continue;
+  if(!(avg>5))continue;
   checked++;
   const rank=market.ranks.get(key(pick));
-  const minFactor=rank<=5?1.15:rank<=15?1.06:1;
-  if(Number(pick.price)<Math.floor(avg*minFactor)){invalid++;if(rank<=5)elite++;}
+  const minimum=minimumLeagueBid(pick,avg,market);
+  if(Number(pick.price)<minimum){invalid++;if(rank<=5)elite++;}
  }
  return {checked,invalid,elite,credible:invalid===0};
 }
