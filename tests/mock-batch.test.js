@@ -47,3 +47,20 @@ test("100 complete H2H auctions satisfy every team budget and roster requirement
   }
  }
 });
+
+// Yahoo-like auction price distribution; synthetic identities avoid relying on live Yahoo data.
+test("Yahoo-priced full auctions honor high-value premium and team budgets",()=>{
+ const prices=players.map((p,i)=>({player:p.player,avg:i<5?75-i*5:i<18?49-(i-5)*2:i<65?22-(i-18)*.3:i<110?5+(110-i)*.1:1}));
+ for(const mode of ["h2h","roto"]){
+  for(const seed of [1,7,19]){
+   const run=runFullMock(players,prices,mode,seed);
+   assert.equal(run.log.length,CONFIG[mode].teams*CONFIG[mode].slots);
+   for(const team of run.teams)assert.ok(team.spent>=190&&team.spent<=200,`${mode} seed ${seed}, team ${team.team}: ${team.spent}`);
+   for(const pick of run.log){
+    const ref=prices.find(p=>p.player===pick.player).avg;
+    const floor=ref>=50?Math.ceil(ref*1.1-1e-9):ref>5?Math.ceil(ref):1;
+    assert.ok(pick.price>=floor,`${mode} seed ${seed}: ${pick.player} $${pick.price} below $${floor}`);
+   }
+  }
+ }
+});
