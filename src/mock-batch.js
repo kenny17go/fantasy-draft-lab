@@ -1,3 +1,4 @@
+import {buildLeagueMarket,leagueTarget} from "./league-market.js";
 import {CONFIG,addPick,fresh,teamStats} from "./model.js";
 import {rankProjections,teamCategories} from "./projections.js";
 import {canAddToRoster} from "./roster.js";
@@ -8,7 +9,7 @@ function rng(seed){let s=seed>>>0;return ()=>((s=(Math.imul(s,1664525)+101390422
 export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal"){
  const cfg=CONFIG[mode];if(!cfg)throw Error("未知模式");
  if(players.length<cfg.teams*cfg.slots)throw Error("預測球員不足");
- const random=rng(seed),ranked=rankProjections(players),yahoo=new Map(prices.map(p=>[key(p),p]));
+ const random=rng(seed),ranked=rankProjections(players),yahoo=new Map(prices.map(p=>[key(p),p])),league=buildLeagueMarket(prices);
  const rosters=Array.from({length:cfg.teams},()=>[]),styles=rosters.map(()=>.85+random()*.3);
  let state=fresh(mode),log=[];
  while(state.picks.length<cfg.teams*cfg.slots){
@@ -21,13 +22,15 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    const eligible=open.filter(x=>canAddToRoster(rosters[x.team-1],p,mode));
    if(!eligible.length)continue;
    const market=yahoo.get(key(p)),fallback=Math.max(1,Math.round(2+Math.max(0,p.total)*3));
-   const reference=market?.proj>0?market.proj:market?.avg>0?market.avg:fallback;
+   const reference=market?.avg>0?market.avg:market?.proj>0?market.proj:fallback;
+   const target=leagueTarget(p,reference,league);
    const bids=eligible.map(({team,stats})=>{
     const scenarioFactor=scenario==="aggressive"?1.18:scenario==="conservative"?.85:scenario==="mixed"?(team%2?1.18:.85):1;
     const factor=styles[team-1]*scenarioFactor*(.9+random()*.2);
-    return {team,bid:Math.max(1,Math.min(stats.maxBid,Math.round(reference*factor)))};
+    return {team,bid:Math.max(1,Math.min(stats.maxBid,Math.round(target*factor)))};
    }).sort((a,b)=>b.bid-a.bid||a.team-b.team);
-   choices.push({p,reference,bid:bids[0].bid,team:bids[0].team});
+   const clearing=bids.length>1?Math.min(bids[0].bid,bids[1].bid+1):bids[0].bid;
+   choices.push({p,reference,bid:clearing,team:bids[0].team});
    if(choices.length>=16)break;
   }
   if(!choices.length)throw Error("無合法球員可填滿隊伍；請檢查位置供給");
