@@ -1,3 +1,4 @@
+import {yahooProjectedToCsv} from "./yahoo-import.js";
 import {parseProjections,rankProjections} from "./projections.js";
 import {auctionValues} from "./auction.js";
 import {CATEGORIES,puntRankings,rotoStandings} from "./strategy.js";
@@ -31,3 +32,5 @@ document.getElementById("simulate").addEventListener("click",()=>{const output=d
 const labels={fgPct:"FG%",ftPct:"FT%",three:"3PM",pts:"PTS",reb:"REB",ast:"AST",stl:"STL",blk:"BLK",tov:"TO"};
 for(const cat of CATEGORIES){const label=document.createElement("label");label.className="punt-choice";const cb=document.createElement("input");cb.type="checkbox";cb.addEventListener("change",()=>{if(cb.checked)punt.add(cat);else punt.delete(cat);if(projectionPlayers.length)displayRankings(projectionPlayers);});label.append(cb,document.createTextNode(" Punt "+labels[cat]));$("punt-options").append(label);}
 $("roto-calculate").addEventListener("click",()=>{const out=$("roto-status"),table=$("roto-standings");table.replaceChildren();if(!projectionPlayers.length){out.textContent="請先匯入球員預測資料";return;}try{const result=rotoStandings(state,projectionPlayers);if(!result.ready){out.textContent=result.reason;return;}result.standings.forEach(p=>{const tr=document.createElement("tr");for(const v of ["Team "+p.team,p.points.toFixed(1),...CATEGORIES.map(c=>p.categoryPoints[c].toFixed(1))])cell(tr,v);table.append(tr);});out.textContent="14 隊完整 ROTO 預測積分（同分平分名次積分）";}catch(err){out.textContent="計算失敗："+err.message;}});
+
+$("yahoo-import").addEventListener("change",async e=>{const file=e.target.files[0];if(!file)return;try{const csv=yahooProjectedToCsv(await file.text());const players=parseProjections(csv);localStorage.setItem(projectionsKey,JSON.stringify(players));projectionPlayers=players;render();$("projection-status").textContent="Yahoo 預測已匯入："+players.length+" 位球員（賽季總數已轉為每場數據）。";}catch(err){$("projection-status").textContent="Yahoo 匯入失敗："+err.message;}finally{e.target.value="";}});
