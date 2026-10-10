@@ -37,6 +37,30 @@ function updatePlayerSuggestions(){
   const option=document.createElement("option");option.value=p.player;root.append(option);
  });
 }
+function renderLiveSearch(){
+ const root=$("live-search-results"),detail=$("live-search-detail"),query=$("live-search").value.trim().toLocaleLowerCase();
+ root.replaceChildren();
+ if(!query){detail.textContent="輸入部分姓名即可查詢；不需要登記其他隊伍成交。";return;}
+ if(!projectionPlayers.length){detail.textContent="請先在球員研究匯入 Yahoo 球員預測。";return;}
+ let priceData=[];try{priceData=JSON.parse(localStorage.getItem("fantasy-draft-lab:v1:prices")||"[]");}catch{}
+ const prices=new Map((Array.isArray(priceData)?priceData:[]).map(p=>[p.player?.trim().toLocaleLowerCase(),p]));
+ const ranks=new Map(rankProjections(projectionPlayers).map((p,i)=>[p.player.trim().toLocaleLowerCase(),i+1]));
+ const sold=new Set(state.picks.map(p=>p.player.trim().toLocaleLowerCase()));
+ const matches=projectionPlayers.filter(p=>p.player.toLocaleLowerCase().includes(query)).slice(0,12);
+ detail.textContent=matches.length?"點選球員可帶入下方成交登記；查詢本身不會儲存成交。":"找不到符合的球員。";
+ for(const p of matches){
+  const k=p.player.trim().toLocaleLowerCase(),y=prices.get(k),button=document.createElement("button");
+  button.type="button";button.className="secondary";button.disabled=sold.has(k);
+  button.textContent=p.player+" · 9-Cat #"+(ranks.get(k)||"—")+" · Yahoo Proj "+(Number.isFinite(y?.proj)?"$"+y.proj:"—")+" · Avg "+(Number.isFinite(y?.avg)?"$"+y.avg:"—")+(sold.has(k)?" · 已成交":"");
+  button.addEventListener("click",()=>{
+   $("player").value=p.player;
+   detail.textContent="已選擇 "+p.player+"。若要記錄成交，請在下方選隊伍並輸入成交價。";
+   $("live-purchase").scrollIntoView({behavior:"smooth",block:"start"});
+  });
+  root.append(button);
+ }
+}
+$("live-search").addEventListener("input",renderLiveSearch);
 let activeTab="research";
 function setTab(tab){
  activeTab=tab;
@@ -56,7 +80,7 @@ let rankingSort={column:4,ascending:false};
 function load(m){try{const raw=localStorage.getItem(key(m));return raw?validateState(JSON.parse(raw),m):fresh(m)}catch(e){console.warn("無法載入本機資料",e);return fresh(m)}}
 function save(){localStorage.setItem(key(mode),JSON.stringify(state));}
 function cell(row,text){const td=document.createElement("td");td.textContent=String(text);row.append(td);return td;}
-function render(){const c=CONFIG[mode];$("punt-controls").hidden=mode!=="h2h";$("roto-controls").hidden=mode!=="roto";$("mode").value=mode;$("summary").replaceChildren();for(const [label,value] of [["隊伍",c.teams],["每隊預算","$"+c.budget],["每隊名額",c.slots],["總選秀名額",c.teams*c.slots]]){const el=document.createElement("div");el.className="metric";const s=document.createElement("span"),b=document.createElement("b");s.textContent=label;b.textContent=value;el.append(s,b);$("summary").append(el);}$("roster").textContent="位置配置："+c.roster;$("team").replaceChildren();$("teams").replaceChildren();for(let n=1;n<=c.teams;n++){const opt=document.createElement("option");opt.value=n;opt.textContent=teamLabel(n);$("team").append(opt);const t=teamStats(state,n),tr=document.createElement("tr");for(const value of [teamLabel(n),t.count+"/"+c.slots,"$"+t.spent,"$"+t.remaining,"$"+t.maxBid,projectionPlayers.length?(()=>{const r=rosterForTeam(state,projectionPlayers,n);return r.assignment===null?"位置衝突":r.unknown?"待核對 "+r.unknown:"可配置";})():"未載入"])cell(tr,value);$("teams").append(tr);}$("history").replaceChildren();state.picks.forEach((p,i)=>{const tr=document.createElement("tr");for(const value of [i+1,p.player,teamLabel(p.team),"$"+p.price])cell(tr,value);$("history").append(tr);});$("undo").disabled=!state.picks.length;if(projectionPlayers.length)displayRankings(projectionPlayers);updatePlayerSuggestions();}
+function render(){const c=CONFIG[mode];$("punt-controls").hidden=mode!=="h2h";$("roto-controls").hidden=mode!=="roto";$("mode").value=mode;$("summary").replaceChildren();for(const [label,value] of [["隊伍",c.teams],["每隊預算","$"+c.budget],["每隊名額",c.slots],["總選秀名額",c.teams*c.slots]]){const el=document.createElement("div");el.className="metric";const s=document.createElement("span"),b=document.createElement("b");s.textContent=label;b.textContent=value;el.append(s,b);$("summary").append(el);}$("roster").textContent="位置配置："+c.roster;$("team").replaceChildren();$("teams").replaceChildren();for(let n=1;n<=c.teams;n++){const opt=document.createElement("option");opt.value=n;opt.textContent=teamLabel(n);$("team").append(opt);const t=teamStats(state,n),tr=document.createElement("tr");for(const value of [teamLabel(n),t.count+"/"+c.slots,"$"+t.spent,"$"+t.remaining,"$"+t.maxBid,projectionPlayers.length?(()=>{const r=rosterForTeam(state,projectionPlayers,n);return r.assignment===null?"位置衝突":r.unknown?"待核對 "+r.unknown:"可配置";})():"未載入"])cell(tr,value);$("teams").append(tr);}$("history").replaceChildren();state.picks.forEach((p,i)=>{const tr=document.createElement("tr");for(const value of [i+1,p.player,teamLabel(p.team),"$"+p.price])cell(tr,value);$("history").append(tr);});$("undo").disabled=!state.picks.length;if(projectionPlayers.length)displayRankings(projectionPlayers);updatePlayerSuggestions();if($("live-search").value.trim())renderLiveSearch();}
 function checkPosition(pick){if(!projectionPlayers.length)return;const map=new Map(projectionPlayers.map(p=>[p.player.toLocaleLowerCase(),p]));const target=map.get(pick.player.trim().toLocaleLowerCase());if(!target)return;const existing=state.picks.filter(p=>p.team===Number(pick.team)).map(p=>map.get(p.player.toLocaleLowerCase())).filter(Boolean);if(!canAddToRoster(existing,target,mode))throw Error("球員位置無法排入該隊剩餘陣容");}
 function feedback(message){$("feedback").textContent=message;}
 $("mode").addEventListener("change",e=>{mode=e.target.value;state=load(mode);feedback("");render();batchGeneration++;batchResult=loadArchive();showBatch();restoreMockArchive();});
