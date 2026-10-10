@@ -1,3 +1,4 @@
+import {readMockArchive,writeMockArchive,deleteMockArchive} from "./mock-storage.js";
 import {recommendMockTeams} from "./mock-recommendations.js";
 import {parseYahooPrices,mergeYahooPrices} from "./yahoo-prices.js";
 import {makeBackup,readBackup} from "./backup.js";
@@ -22,7 +23,9 @@ function cell(row,text){const td=document.createElement("td");td.textContent=Str
 function render(){const c=CONFIG[mode];$("punt-controls").hidden=mode!=="h2h";$("roto-controls").hidden=mode!=="roto";$("mode").value=mode;$("summary").replaceChildren();for(const [label,value] of [["隊伍",c.teams],["每隊預算","$"+c.budget],["每隊名額",c.slots],["總選秀名額",c.teams*c.slots]]){const el=document.createElement("div");el.className="metric";const s=document.createElement("span"),b=document.createElement("b");s.textContent=label;b.textContent=value;el.append(s,b);$("summary").append(el);}$("roster").textContent="位置配置："+c.roster;$("team").replaceChildren();$("teams").replaceChildren();for(let n=1;n<=c.teams;n++){const opt=document.createElement("option");opt.value=n;opt.textContent="Team "+n;$("team").append(opt);const t=teamStats(state,n),tr=document.createElement("tr");for(const value of ["Team "+n,t.count+"/"+c.slots,"$"+t.spent,"$"+t.remaining,"$"+t.maxBid,projectionPlayers.length?(()=>{const r=rosterForTeam(state,projectionPlayers,n);return r.assignment===null?"位置衝突":r.unknown?"待核對 "+r.unknown:"可配置";})():"未載入"])cell(tr,value);$("teams").append(tr);}$("history").replaceChildren();state.picks.forEach((p,i)=>{const tr=document.createElement("tr");for(const value of [i+1,p.player,"Team "+p.team,"$"+p.price])cell(tr,value);$("history").append(tr);});$("undo").disabled=!state.picks.length;if(projectionPlayers.length)displayRankings(projectionPlayers);}
 function checkPosition(pick){if(!projectionPlayers.length)return;const map=new Map(projectionPlayers.map(p=>[p.player.toLocaleLowerCase(),p]));const target=map.get(pick.player.trim().toLocaleLowerCase());if(!target)return;const existing=state.picks.filter(p=>p.team===Number(pick.team)).map(p=>map.get(p.player.toLocaleLowerCase())).filter(Boolean);if(!canAddToRoster(existing,target,mode))throw Error("球員位置無法排入該隊剩餘陣容");}
 function feedback(message){$("feedback").textContent=message;}
-$("mode").addEventListener("change",e=>{mode=e.target.value;state=load(mode);feedback("");render();batchGeneration++;batchResult=loadArchive();showBatch();});
+$("mode").addEventListener("change",e=>{mode=e.target.value;state=load(mode);feedback("");render();batchGeneration++;batchResult=loadArchive();showBatch();
+async function restoreMockArchive(){const currentMode=mode;try{const saved=await readMockArchive(mockArchiveKey(currentMode));if(currentMode===mode&&saved?.results?.length){batchResult=normalizeArchive(saved);showBatch();}}catch(e){console.warn("Mock archive load failed",e);}}
+restoreMockArchive();});
 $("purchase").addEventListener("submit",e=>{e.preventDefault();try{const pick={player:$("player").value,team:$("team").value,price:$("price").value};checkPosition(pick);state=addPick(state,pick);save();$("player").value="";$("price").value="1";feedback("成交已保存");render();}catch(err){feedback(err.message);}});
 $("undo").addEventListener("click",()=>{if(!state.picks.length)return;state={...state,picks:state.picks.slice(0,-1)};save();feedback("已復原上一筆");render();});
 $("reset").addEventListener("click",()=>{if(!confirm("確定清除目前 "+CONFIG[mode].label+" 的所有成交紀錄？"))return;state=fresh(mode);save();feedback("已清除");render();});
@@ -131,7 +134,7 @@ const mockArchiveKey=m=>"fantasy-draft-lab:v1:mock-archive:"+m;
 let batchGeneration=0;
 let batchResult=null;
 function loadArchive(){try{const x=JSON.parse(localStorage.getItem(mockArchiveKey(mode))||"null");return normalizeArchive(x);}catch{return null;}}
-function storeArchive(data){
+async function storeArchive(data){
  // Save each roster once; recompute cross-run recommendations from stored stats.
  const compact={version:3,results:data.results.map(r=>({
   seed:r.seed,scenario:r.scenario,mode:r.mode,winner:r.winner,metric:r.metric,
@@ -140,8 +143,8 @@ function storeArchive(data){
    stats:t.stats,players:t.players.map(p=>[p.player,p.price])
   }))
  }))};
- try{localStorage.setItem(mockArchiveKey(mode),JSON.stringify(compact));return true;}
- catch{return false;}
+ try{await writeMockArchive(mockArchiveKey(mode),compact);return true;}
+ catch(e){console.warn("Mock archive IndexedDB save failed",e);return false;}
 }
 function normalizeArchive(data){
  if(!data||!Array.isArray(data.results))return null;
@@ -195,7 +198,7 @@ $("batch-run").addEventListener("click",()=>{
  btn.disabled=true;$("batch-status").textContent="準備模擬…";
  if(players.length<CONFIG[selectedMode].teams*CONFIG[selectedMode].slots){$("batch-status").textContent="球員預測不足，無法模擬";btn.disabled=false;return;}
  const results=[],scenarios=["normal","normal","aggressive","conservative","mixed"];
- const next=()=>{
+ const next=async()=>{
   if(generation!==batchGeneration||mode!==selectedMode){btn.disabled=false;return;}
   try{
    for(let j=0;j<2&&results.length<100;j++){
@@ -205,12 +208,12 @@ $("batch-run").addEventListener("click",()=>{
    $("batch-status").textContent="已完成 "+results.length+" / 100 場…";
    if(results.length<100){setTimeout(next,0);return;}
    batchResult={results,ranked:[],count:100};
-   const saved=storeArchive(batchResult);showBatch();
+   const saved=await storeArchive(batchResult);showBatch();
    if(!saved)$("batch-status").textContent="100 場完成，但本機儲存空間不足；本次結果僅暫存。";
   }catch(e){$("batch-status").textContent="模擬中止（已完成 "+results.length+" 場）："+e.message;}
   finally{if(results.length===100||generation!==batchGeneration||$("batch-status").textContent.startsWith("模擬中止"))btn.disabled=false;}
  };
  setTimeout(next,0);
 });
-$("batch-clear").addEventListener("click",()=>{if(!confirm("確定清除目前模式的 Mock Draft 紀錄？"))return;batchGeneration++;$("batch-run").disabled=false;localStorage.removeItem(mockArchiveKey(mode));batchResult=null;showBatch();});
+$("batch-clear").addEventListener("click",async()=>{if(!confirm("確定清除目前模式的 Mock Draft 紀錄？"))return;batchGeneration++;$("batch-run").disabled=false;try{await deleteMockArchive(mockArchiveKey(mode));}catch(e){console.warn("Mock archive delete failed",e);}localStorage.removeItem(mockArchiveKey(mode));batchResult=null;showBatch();});
 batchResult=loadArchive();showBatch();
