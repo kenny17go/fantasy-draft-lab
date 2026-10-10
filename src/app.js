@@ -214,6 +214,6 @@ $("batch-run").addEventListener("click",()=>{
  setTimeout(next,0);
 });
 $("batch-clear").addEventListener("click",async()=>{if(!confirm("確定清除目前模式的 Mock Draft 紀錄？"))return;batchGeneration++;$("batch-run").disabled=false;try{await deleteMockArchive(mockArchiveKey(mode));}catch(e){console.warn("Mock archive delete failed",e);}localStorage.removeItem(mockArchiveKey(mode));batchResult=null;showBatch();});
-batchResult=loadArchive();showBatch();
+batchResult=loadArchive();showBatch();restoreMockArchive();
 
 async function restoreMockArchive(){const currentMode=mode;try{const saved=await readMockArchive(mockArchiveKey(currentMode));if(currentMode===mode&&saved?.results?.length){batchResult=normalizeArchive(saved);showBatch();}}catch(e){console.warn("Mock archive load failed",e);}}
