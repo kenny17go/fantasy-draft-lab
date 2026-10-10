@@ -40,3 +40,15 @@ export function mockAuctionStep(mock,players,prices=[],values=[],userBid=0){
  const next={...mock,state:addPick(mock.state,{player:candidate.player,team:winner.team,price:winner.bid}),turn:mock.turn+1};
  return {mock:next,player:candidate.player,winner:winner.team,price:winner.bid,target,offers};
 }
+
+// Run only a bounded segment. Team 1 stays empty until the user starts bidding.
+export function autoMockTo(mock,players,prices=[],values=[],targetPicks=84){
+ const cap=CONFIG[mock.mode].teams*CONFIG[mock.mode].slots;
+ const stop=Math.min(cap,Math.max(mock.state.picks.length,Math.floor(targetPicks)));
+ const events=[];let current=mock;
+ while(current.state.picks.length<stop){
+  const step=mockAuctionStep(current,players,prices,values,0);
+  current=step.mock;events.push({player:step.player,team:step.winner,price:step.price});
+ }
+ return {mock:current,events};
+}
