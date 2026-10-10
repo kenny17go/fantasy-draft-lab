@@ -1,0 +1,15 @@
+import {CONFIG,fresh,teamStats,addPick,validateState} from "./model.js";
+const $=id=>document.getElementById(id),key=mode=>"fantasy-draft-lab:v1:"+mode;
+let mode="h2h",state;
+function load(m){try{const raw=localStorage.getItem(key(m));return raw?validateState(JSON.parse(raw),m):fresh(m)}catch(e){console.warn("無法載入本機資料",e);return fresh(m)}}
+function save(){localStorage.setItem(key(mode),JSON.stringify(state));}
+function cell(row,text){const td=document.createElement("td");td.textContent=String(text);row.append(td);}
+function render(){const c=CONFIG[mode];$("mode").value=mode;$("summary").replaceChildren();for(const [label,value] of [["隊伍",c.teams],["每隊預算","$"+c.budget],["每隊名額",c.slots],["總選秀名額",c.teams*c.slots]]){const el=document.createElement("div");el.className="metric";const s=document.createElement("span"),b=document.createElement("b");s.textContent=label;b.textContent=value;el.append(s,b);$("summary").append(el);}$("roster").textContent="位置配置："+c.roster;$("team").replaceChildren();$("teams").replaceChildren();for(let n=1;n<=c.teams;n++){const opt=document.createElement("option");opt.value=n;opt.textContent="Team "+n;$("team").append(opt);const t=teamStats(state,n),tr=document.createElement("tr");for(const value of ["Team "+n,t.count+"/"+c.slots,"$"+t.spent,"$"+t.remaining,"$"+t.maxBid])cell(tr,value);$("teams").append(tr);}$("history").replaceChildren();state.picks.forEach((p,i)=>{const tr=document.createElement("tr");for(const value of [i+1,p.player,"Team "+p.team,"$"+p.price])cell(tr,value);$("history").append(tr);});$("undo").disabled=!state.picks.length;}
+function feedback(message){$("feedback").textContent=message;}
+$("mode").addEventListener("change",e=>{mode=e.target.value;state=load(mode);feedback("");render();});
+$("purchase").addEventListener("submit",e=>{e.preventDefault();try{state=addPick(state,{player:$("player").value,team:$("team").value,price:$("price").value});save();$("player").value="";$("price").value="1";feedback("成交已保存");render();}catch(err){feedback(err.message);}});
+$("undo").addEventListener("click",()=>{if(!state.picks.length)return;state={...state,picks:state.picks.slice(0,-1)};save();feedback("已復原上一筆");render();});
+$("reset").addEventListener("click",()=>{if(!confirm("確定清除目前 "+CONFIG[mode].label+" 的所有成交紀錄？"))return;state=fresh(mode);save();feedback("已清除");render();});
+$("export").addEventListener("click",()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="fantasy-draft-"+mode+".json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);});
+$("import").addEventListener("change",async e=>{const file=e.target.files[0];if(!file)return;try{const incoming=validateState(JSON.parse(await file.text()),mode);if(!confirm("以匯入資料覆蓋目前聯盟紀錄？"))return;state=incoming;save();feedback("匯入成功");render();}catch(err){feedback("匯入失敗："+err.message);}finally{e.target.value="";}});
+state=load(mode);render();
