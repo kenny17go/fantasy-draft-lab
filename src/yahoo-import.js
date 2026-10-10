@@ -18,6 +18,7 @@ export function yahooProjectedToCsv(input){
  const output=[FIELDS.join(",")];
  for(const line of lines){
   const cells=splitRow(line,separator),get=k=>cells[indexes[k]]??"";
+  if(cells.length!==header.length)throw Error("Yahoo 資料欄數不符，請使用 Tab 分隔的完整表格");
   const name=get("player").trim(),gp=number(get("gp"),name+" GP");
   if(!name||gp<=0||gp>82)throw Error("球員或 GP 無效："+name);
   const positions=get("positions").toUpperCase().replace(/[,; ]+/g,"/");
