@@ -22,7 +22,7 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
   for(const p of available){
    const eligible=open.filter(x=>canAddToRoster(rosters[x.team-1],p,mode));
    if(!eligible.length)continue;
-   const market=yahoo.get(key(p)),fallback=Math.max(1,Math.round(2+Math.max(0,p.total)*3));
+   const fallback=Math.max(1,Math.round(2+Math.max(0,p.total)*3));
    const reference=league.reference.get(key(p))??fallback;
    const target=leagueTarget(p,reference,league);
    const floor=minimumLeagueBid(p,reference,league);

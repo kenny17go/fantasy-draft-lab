@@ -1,17 +1,21 @@
 // Initial league-specific calibration, not observed auction transaction data.
 // Yahoo's 12x13 reference differs from this league's 14x12 format.
 const key=p=>String(p.player||"").trim().toLocaleLowerCase();
+const observed=value=>value!==null&&value!==undefined&&String(value).trim()!==""&&Number.isFinite(Number(value))&&Number(value)>=0;
 export function buildLeagueMarket(prices=[]){
- const valid=prices.map(p=>({...p,reference:Math.max(Number(p.avg)>0?Number(p.avg):0,Number(p.proj)>0?Number(p.proj):0)})).filter(p=>p.reference>0).sort((a,b)=>b.reference-a.reference);
+ const valid=prices.map(p=>{
+  const hasAvg=observed(p.avg),hasProj=observed(p.proj);
+  return {...p,hasPrice:hasAvg||hasProj,reference:Math.max(hasAvg?Number(p.avg):0,hasProj?Number(p.proj):0)};
+ }).filter(p=>p.hasPrice).sort((a,b)=>b.reference-a.reference);
  const ranks=new Map(valid.map((p,i)=>[key(p),i+1]));
- const avg=new Map(valid.map(p=>[key(p),Number(p.avg)>0?Number(p.avg):0]));
+ const avg=new Map(valid.filter(p=>observed(p.avg)).map(p=>[key(p),Number(p.avg)]));
  const reference=new Map(valid.map(p=>[key(p),p.reference]));
  return {ranks,avg,reference};
 }
 export function leagueTarget(player,reference,market){
  const yahooReference=market.reference.get(key(player));
  const rank=market.ranks.get(key(player));
- const base=Number(yahooReference)>0?yahooReference:Math.max(1,Number(reference)||1);
+ const base=yahooReference!==undefined?yahooReference:Math.max(1,Number(reference)||1);
  let factor=1;
  if(rank<=5)factor=1.32;
  else if(rank<=15)factor=1.2;
@@ -23,7 +27,7 @@ export function leagueTarget(player,reference,market){
 // An elite bargain is an invalid reference strategy, even when its nine-cat score is high.
 export function minimumLeagueBid(player,reference,market){
  const yahooReference=market.reference.get(key(player));
- const base=Number(yahooReference)>0?yahooReference:Number(reference);
+ const base=yahooReference!==undefined?yahooReference:Number(reference);
  if(!(base>5))return 1;
  if(base>=50)return Math.ceil(base*1.1-1e-9);
  return Math.max(2,Math.ceil(base));

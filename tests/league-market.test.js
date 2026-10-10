@@ -57,3 +57,16 @@ test("higher of Yahoo Avg and Proj governs floor and price credibility",()=>{
  assert.equal(priceReality({players:[{player:"Proj Higher",price:25}]},m).credible,true);
  assert.equal(priceReality({players:[{player:"Proj Elite",price:76}]},m).credible,false);
 });
+
+test("zero and fractional Yahoo quotes remain observed, unlike missing prices",()=>{
+ const m=buildLeagueMarket([{player:"Tiny",avg:0.2,proj:0.8},{player:"Zero",avg:0,proj:0},{player:"Proj",avg:0,proj:3},{player:"Missing",avg:null,proj:""},{player:"Blank",avg:"",proj:null}]);
+ assert.equal(m.reference.get("tiny"),0.8);
+ assert.equal(m.reference.get("zero"),0);
+ assert.equal(m.reference.get("proj"),3);
+ assert.equal(m.reference.has("missing"),false);
+ assert.equal(m.reference.has("blank"),false);
+ assert.equal(minimumLeagueBid({player:"Tiny"},0.8,m),1);
+ assert.equal(minimumLeagueBid({player:"Zero"},0,m),1);
+ assert.equal(minimumLeagueBid({player:"Proj"},3,m),1);
+ assert.equal(priceReality({players:[{player:"Tiny",price:3},{player:"Proj",price:2}]},m).credible,true);
+});
