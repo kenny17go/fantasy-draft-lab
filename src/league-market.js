@@ -24,9 +24,7 @@ export function minimumLeagueBid(player,reference,market){
  const avg=market.avg.get(key(player));
  const base=Number(avg)>0?avg:Number(reference);
  if(!(base>5))return 1;
- const rank=market.ranks.get(key(player));
- const premium=rank<=5?1.2:rank<=15?1.12:base>=25?1.05:1.01;
- return Math.max(2,Math.floor(base*premium)+1);
+ return Math.max(2,Math.ceil(base));
 }
 export function priceReality(team,market){
  let checked=0,invalid=0,elite=0;
