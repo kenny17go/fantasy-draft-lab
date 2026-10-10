@@ -192,8 +192,11 @@ function renderRun(index){
 }
 $("batch-select").addEventListener("change",e=>renderRun(Number(e.target.value)));
 $("batch-run").addEventListener("click",()=>{
- const btn=$("batch-run"),generation=++batchGeneration,selectedMode=mode,players=projectionPlayers.slice(),prices=mockPriceData().prices;
+ const btn=$("batch-run"),generation=++batchGeneration,selectedMode=mode,players=projectionPlayers.slice();
  btn.disabled=true;$("batch-status").textContent="準備模擬…";
+ let prices=[];
+ try{const stored=JSON.parse(localStorage.getItem("fantasy-draft-lab:v1:prices")||"[]");if(!Array.isArray(stored))throw Error("Yahoo 價格資料格式錯誤");prices=stored;}
+ catch(e){$("batch-status").textContent="無法讀取 Yahoo 價格："+e.message;btn.disabled=false;return;}
  if(players.length<CONFIG[selectedMode].teams*CONFIG[selectedMode].slots){$("batch-status").textContent="球員預測不足，無法模擬";btn.disabled=false;return;}
  const results=[],scenarios=["normal","normal","aggressive","conservative","mixed"];
  const next=async()=>{
