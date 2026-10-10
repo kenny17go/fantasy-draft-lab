@@ -1,0 +1,6 @@
+import test from "node:test";import assert from "node:assert/strict";import {CONFIG,fresh,teamStats,addPick,validateState} from "../src/model.js";
+test("league configuration",()=>{assert.equal(CONFIG.h2h.teams*CONFIG.h2h.slots,168);assert.equal(CONFIG.roto.teams*CONFIG.roto.slots,126);assert.equal(CONFIG.roto.budget*CONFIG.roto.teams,2800);});
+test("budget and legal max bid",()=>{let s=fresh("roto");assert.equal(teamStats(s,1).maxBid,192);s=addPick(s,{player:"Test One",team:1,price:192});assert.equal(teamStats(s,1).remaining,8);assert.equal(teamStats(s,1).maxBid,1);assert.throws(()=>addPick(s,{player:"Test Two",team:1,price:2}),/最高合法/);});
+test("no duplicate across teams",()=>{let s=addPick(fresh("h2h"),{player:"Player A",team:1,price:20});assert.throws(()=>addPick(s,{player:"player a",team:2,price:1}),/已經成交/);});
+test("full roster and undo-compatible state",()=>{let s=fresh("roto");for(let i=0;i<9;i++)s=addPick(s,{player:"P"+i,team:1,price:1});assert.equal(teamStats(s,1).open,0);assert.throws(()=>addPick(s,{player:"P10",team:1,price:1}),/滿編/);assert.equal(validateState(s,"roto").picks.length,9);assert.throws(()=>validateState(s,"h2h"),/模式/);});
+test("reject invalid data",()=>{assert.throws(()=>addPick(fresh("h2h"),{player:"X",team:15,price:1}),/隊伍/);assert.throws(()=>addPick(fresh("h2h"),{player:"X",team:1,price:0}),/正整數/);});

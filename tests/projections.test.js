@@ -1,0 +1,7 @@
+import test from "node:test";import assert from "node:assert/strict";import {parseProjections,rankProjections,teamCategories} from "../src/projections.js";
+const csv="player,positions,gp,pts,reb,ast,stl,blk,three,tov,fgm,fga,ftm,fta\nAlpha,PG,70,25,5,8,2,0.5,3,3,9,19,5,6\nBeta,C,75,15,12,2,1,2,0,2,7,12,2,4\nGamma,SG/SF,65,20,6,4,1,1,2,2,7,16,4,5";
+test("parse three valid players and position eligibility",()=>{const p=parseProjections(csv);assert.equal(p.length,3);assert.deepEqual(p[2].positions,["SG","SF"]);});
+test("percentages are attempt-weighted",()=>{const p=parseProjections(csv);const s=teamCategories(p.slice(0,2));assert.ok(Math.abs(s.fgPct-(9*70+7*75)/(19*70+12*75))<1e-12);assert.ok(Math.abs(s.ftPct-(5*70+2*75)/(6*70+4*75))<1e-12);});
+test("nine z scores finite and turnovers inverted",()=>{const r=rankProjections(parseProjections(csv));assert.equal(r.length,3);assert.equal(Object.keys(r[0].z).length,9);assert.ok(r.every(x=>Number.isFinite(x.total)));const alpha=r.find(x=>x.player==="Alpha"),beta=r.find(x=>x.player==="Beta");assert.ok(alpha.z.tov<beta.z.tov);});
+test("reject duplicate players and bad attempts",()=>{assert.throws(()=>parseProjections(csv+"\nAlpha,PG,70,1,1,1,1,1,1,1,1,1,1,1"),/重複/);assert.throws(()=>parseProjections(csv.replace("9,19","20,19")),/不合理/);});
+test("quoted commas supported",()=>{const s=csv.replace("Alpha,PG",'"Alpha, Jr",PG');assert.equal(parseProjections(s)[0].player,"Alpha, Jr");});
