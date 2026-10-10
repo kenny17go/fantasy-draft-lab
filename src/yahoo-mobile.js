@@ -23,8 +23,8 @@ export function parseYahooMobileText(text){
   const gp=Number((ahead[fgAt-5]||"").replace(/,/g,""));
   // Offset relative to FGM/A: GP -5, preseason -4, current -3, roster% -2, MPG -1.
   if(!Number.isInteger(gp)||gp<1||gp>82){errors.push(name+"：GP 無法辨識");continue;}
-  const stats=ahead.slice(fgAt,fgAt+13);
-  if(stats.length!==13||!ratio.test(stats[0])||!ratio.test(stats[2])||!stats[1].startsWith(".")||!stats[3].startsWith(".")||!stats.slice(4).every(x=>number.test(x))){errors.push(name+"：九項預測欄位不完整");continue;}
+  const stats=ahead.slice(fgAt,fgAt+11);
+  if(stats.length!==11||!ratio.test(stats[0])||!ratio.test(stats[2])||!stats[1].startsWith(".")||!stats[3].startsWith(".")||!stats.slice(4).every(x=>number.test(x))){errors.push(name+"：九項預測欄位不完整");continue;}
   records.push({name,positions:match[2],gp,fg:stats[0],ft:stats[2],three:stats[4],pts:stats[5],reb:stats[6],ast:stats[7],stl:stats[8],blk:stats[9],tov:stats[10]});
   i+=fgAt+10;
  }
