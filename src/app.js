@@ -66,7 +66,7 @@ function displayRankings(players){
  const table=document.createElement("table");table.className="ranking-table";
  const thead=document.createElement("thead");thead.append(header.cloneNode(true));table.append(thead);
  const tbody=document.createElement("tbody");
- ranked.slice(start,start+25).forEach((p,j)=>{const tr=document.createElement("tr");tr.dataset.player=p.player;tr.title="點選查看 9-Cat 明細";cell(tr,start+j+1);const nameCell=cell(tr,p.player);if(sortKey!=="z"||(mode==="h2h"&&punt.size)){const original=document.createElement("small");original.className="ranking-overall-rank";original.textContent="9-Cat 總排名 #"+(overallRanks.get(p.player.trim().toLocaleLowerCase())??"—");nameCell.append(original);}for(const k of shown)cell(tr,formatValue(p,k));if(shown[0]===sortKey&&rankingFieldLabel[sortKey])tr.children[2].classList.add("ranking-category-value");tbody.append(tr);});
+ ranked.slice(start,start+25).forEach((p,j)=>{const tr=document.createElement("tr");tr.dataset.player=p.player;tr.title="點選查看 9-Cat 明細";cell(tr,start+j+1);const nameCell=cell(tr,p.player);{const original=document.createElement("small");original.className="ranking-overall-rank";original.textContent="9-Cat #"+(overallRanks.get(p.player.trim().toLocaleLowerCase())??"—");nameCell.append(original);}for(const k of shown)cell(tr,formatValue(p,k));if(shown[0]===sortKey&&rankingFieldLabel[sortKey])tr.children[2].classList.add("ranking-category-value");tbody.append(tr);});
  table.append(tbody);wrap.append(table);details.append(wrap);groups.append(details);
 }
  if(estimates){const f=scarcityFactors(players,mode);status.textContent=ranked.length+" 位球員；剩餘預算 $"+estimates.remainingCash+"；位置壓力 C "+f.demand.C+"/"+f.supply.C+"（需求/可用供給，啟發式估值）";}
