@@ -20,3 +20,16 @@ test("batch produces a per-run winner",()=>{
  assert.equal(batch.ranked.length,28);
  assert.ok(batch.results.every(x=>x.winner>=1&&x.winner<=14));
 });
+
+test("multiple H2H mock seeds finish without duplicate players or budget violations",()=>{
+ for(let seed=1;seed<=8;seed++){
+  const run=runFullMock(players,[],"h2h",seed);
+  assert.equal(run.log.length,CONFIG.h2h.teams*CONFIG.h2h.slots);
+  assert.equal(new Set(run.log.map(p=>p.player)).size,run.log.length);
+  for(const t of run.teams){
+   assert.equal(t.players.length,CONFIG.h2h.slots);
+   assert.ok(t.spent<=200);
+   assert.ok(t.players.every(p=>p.price>=1));
+  }
+ }
+});
