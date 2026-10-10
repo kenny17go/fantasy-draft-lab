@@ -212,7 +212,7 @@ function normalizeArchive(data){
  }))}))};
 }
 const batchSection=document.createElement("section");batchSection.className="panel";batchSection.id="mock-archive-panel";
-batchSection.innerHTML='<h2>Mock Draft 模擬紀錄庫</h2><p class="hint">每場 14 隊完整模擬；按場次查看最佳球隊、排名與陣容。結果是模型產生，並非 Yahoo 真實成交紀錄。僅保存在目前瀏覽器。</p><div class="actions"><button type="button" id="batch-run">產生 100 場 Mock Draft</button><button type="button" id="batch-clear" class="secondary">清除本機模擬紀錄</button></div><p id="batch-status" role="status"></p><div id="batch-top"><h3>跨場最佳策略 Top 5</h3><p class="hint">跨場九項預測比較，前三名優先參考；非實際勝率。</p><div id="batch-top-list"></div></div><label>選擇模擬場次 <select id="batch-select"></select></label><div class="table-wrap"><table><thead><tr><th>場內排名</th><th>隊伍</th><th>預估分數</th><th>花費</th><th>參考價差</th></tr></thead><tbody id="batch-results"></tbody></table></div><details id="batch-details"><summary>球隊完整陣容與成交價</summary><div id="batch-detail"></div></details>';
+batchSection.innerHTML='<h2>Mock Draft 模擬紀錄庫</h2><p class="hint">每場 14 隊完整模擬；按場次查看最佳球隊、排名與陣容。結果是模型產生，並非 Yahoo 真實成交紀錄。僅保存在目前瀏覽器。</p><div class="actions"><button type="button" id="batch-run">產生 100 場 Mock Draft</button><button type="button" id="batch-clear" class="secondary">清除本機模擬紀錄</button></div><p id="batch-status" role="status"></p><div id="batch-top"><h3>跨場最佳策略 Top 5</h3><p class="hint">跨場九項預測比較，前三名優先參考；非實際勝率。</p><div id="batch-top-list"></div></div><label>選擇模擬場次 <select id="batch-select"></select></label><div class="table-wrap"><table><thead><tr><th>場內排名</th><th>隊伍</th><th>預估分數</th><th>花費</th><th>與 Yahoo 價差</th></tr></thead><tbody id="batch-results"></tbody></table></div><details id="batch-details"><summary>球隊完整陣容與成交價</summary><div id="batch-detail"></div></details>';
 document.querySelector("#live-names").before(batchSection);setTab(activeTab);
 function showBatch(){
  const select=$("batch-select"),body=$("batch-results");select.replaceChildren();body.replaceChildren();$("batch-detail").replaceChildren();$("batch-top-list").replaceChildren();
@@ -248,7 +248,7 @@ function renderRun(index){
  [...run.teams].sort((a,b)=>a.rank-b.rank).forEach(t=>{
   const tr=document.createElement("tr");for(const v of [t.rank===1?"🏆 第 1 名":t.rank,"Team "+t.team,Number(t.score).toFixed(2),"$"+t.spent,"$"+Math.round(t.bargain)])cell(tr,v);
   tr.tabIndex=0;tr.setAttribute("role","button");
-  const open=()=>{const detail=$("batch-detail");detail.replaceChildren();const title=document.createElement("h3");title.textContent="模擬 #"+(index+1)+" · Team "+t.team+" · 場內第 "+t.rank+" 名";detail.append(title);const summary=document.createElement("p");summary.textContent="預估分數 "+Number(t.score).toFixed(2)+"｜花費 $"+t.spent+"｜參考價差 $"+Math.round(t.bargain);detail.append(summary);t.players.forEach(p=>{const row=document.createElement("p");row.textContent=p.player+" — $"+p.price;detail.append(row);});$("batch-details").open=true;};
+  const open=()=>{const detail=$("batch-detail");detail.replaceChildren();const title=document.createElement("h3");title.textContent="模擬 #"+(index+1)+" · Team "+t.team+" · 場內第 "+t.rank+" 名";detail.append(title);const summary=document.createElement("p");summary.textContent="預估分數 "+Number(t.score).toFixed(2)+"｜花費 $"+t.spent+"｜與 Yahoo 價差 $"+Math.round(t.bargain);detail.append(summary);t.players.forEach(p=>{const row=document.createElement("p");row.textContent=p.player+" — $"+p.price;detail.append(row);});$("batch-details").open=true;};
   tr.addEventListener("click",open);tr.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open();}});body.append(tr);
  });
 }
@@ -271,7 +271,8 @@ $("batch-run").addEventListener("click",()=>{
    $("batch-status").textContent="已完成 "+results.length+" / 100 場…";
    if(results.length<100){setTimeout(next,0);return;}
    batchResult={results,ranked:[],count:100,modelVersion:2};
-   const saved=await storeArchive(batchResult);showBatch();
+   const saved=await storeArchive(batchResult);
+   try{showBatch();}catch(renderError){console.error("Mock result display failed",renderError);$("batch-status").textContent="100 場已完成"+(saved?"並保存":"（尚未保存）")+"，但推薦顯示失敗："+renderError.message;return;}
    if(!saved)$("batch-status").textContent="100 場完成，但本機儲存空間不足；本次結果僅暫存。";
   }catch(e){$("batch-status").textContent="模擬中止（已完成 "+results.length+" 場）："+e.message;}
   finally{if(results.length===100||generation!==batchGeneration||$("batch-status").textContent.startsWith("模擬中止"))btn.disabled=false;}
