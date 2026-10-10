@@ -1,3 +1,4 @@
+import {parseYahooPrices,mergeYahooPrices} from "./yahoo-prices.js";
 import {makeBackup,readBackup} from "./backup.js";
 import {parseYahooMobileText,mergeProjectionPlayers} from "./yahoo-mobile.js";
 import {yahooProjectedToCsv} from "./yahoo-import.js";
@@ -25,7 +26,7 @@ $("export").addEventListener("click",()=>{const blob=new Blob([JSON.stringify(st
 $("import").addEventListener("change",async e=>{const file=e.target.files[0];if(!file)return;try{const incoming=validateState(JSON.parse(await file.text()),mode);if(!confirm("以匯入資料覆蓋目前聯盟紀錄？"))return;state=incoming;save();feedback("匯入成功");render();}catch(err){feedback("匯入失敗："+err.message);}finally{e.target.value="";}});
 state=load(mode);render();
 const projectionsKey="fantasy-draft-lab:v1:projections";
-function displayRankings(players){projectionPlayers=players;const ranking=document.getElementById("ranking"),status=document.getElementById("projection-status");ranking.replaceChildren();const ranked=mode==="h2h"&&punt.size?puntRankings(players,[...punt]):rankProjections(players);let estimates=null;try{estimates=auctionValues(players,mode,state);}catch(e){status.textContent="Auction 估值尚不可用："+e.message;}const prices=new Map(estimates?.values.map(p=>[p.player.toLocaleLowerCase(),p.price])??[]);ranked.forEach((p,i)=>{const tr=document.createElement("tr");tr.dataset.player=p.player;tr.title="點選查看 9-Cat 明細";for(const v of [i+1,p.player,p.positions.join("/"),p.gp,(mode==="h2h"&&punt.size?p.puntScore:p.total).toFixed(2),estimates?(prices.has(p.player.toLocaleLowerCase())?"$"+prices.get(p.player.toLocaleLowerCase()):"已成交"):"—"])cell(tr,v);ranking.append(tr);});if(estimates){const f=scarcityFactors(players,mode);status.textContent=ranked.length+" 位球員；剩餘預算 $"+estimates.remainingCash+"；位置壓力 C "+f.demand.C+"/"+f.supply.C+"（需求/可用供給，啟發式估值）";}}
+function displayRankings(players){projectionPlayers=players;const ranking=document.getElementById("ranking"),status=document.getElementById("projection-status");ranking.replaceChildren();const ranked=mode==="h2h"&&punt.size?puntRankings(players,[...punt]):rankProjections(players);let estimates=null;try{estimates=auctionValues(players,mode,state);}catch(e){status.textContent="Auction 估值尚不可用："+e.message;}const prices=new Map(estimates?.values.map(p=>[p.player.toLocaleLowerCase(),p.price])??[]);let yahooPrices=[];try{yahooPrices=JSON.parse(localStorage.getItem("fantasy-draft-lab:v1:prices")||"[]");}catch(e){console.warn("Yahoo 價格資料讀取失敗",e);}const yahooMap=new Map(yahooPrices.map(p=>[p.player.trim().toLocaleLowerCase(),p]));ranked.forEach((p,i)=>{const tr=document.createElement("tr");tr.dataset.player=p.player;tr.title="點選查看 9-Cat 明細";for(const v of [i+1,p.player,p.positions.join("/"),p.gp,(mode==="h2h"&&punt.size?p.puntScore:p.total).toFixed(2),estimates?(prices.has(p.player.toLocaleLowerCase())?"$"+prices.get(p.player.toLocaleLowerCase()):"已成交"):"—",...(yahooMap.has(p.player.toLocaleLowerCase())?[yahooMap.get(p.player.toLocaleLowerCase()).avg===null?"—":"$"+yahooMap.get(p.player.toLocaleLowerCase()).avg,"$"+yahooMap.get(p.player.toLocaleLowerCase()).proj]:["—","—"])])cell(tr,v);ranking.append(tr);});if(estimates){const f=scarcityFactors(players,mode);status.textContent=ranked.length+" 位球員；剩餘預算 $"+estimates.remainingCash+"；位置壓力 C "+f.demand.C+"/"+f.supply.C+"（需求/可用供給，啟發式估值）";}}
 document.getElementById("projections-import").addEventListener("change",async e=>{const file=e.target.files[0];if(!file)return;try{const players=parseProjections(await file.text());if(players.length<2)throw Error("至少需要兩位球員");displayRankings(players);localStorage.setItem(projectionsKey,JSON.stringify(players));}catch(err){document.getElementById("projection-status").textContent="匯入失敗："+err.message;}finally{e.target.value="";}});
 try{const saved=localStorage.getItem(projectionsKey);if(saved){const players=JSON.parse(saved);if(Array.isArray(players)&&players.length>=2)displayRankings(players);}}catch(err){console.warn("預測資料無法恢復",err);}
 
@@ -55,3 +56,12 @@ function showPlayerDetail(player){
  for(const [label,value] of fields){const item=document.createElement("div");item.className="metric";const small=document.createElement("span"),strong=document.createElement("b");small.textContent=label;strong.textContent=value;item.append(small,strong);grid.append(item);}details.append(grid);details.hidden=false;
 }
 $("ranking").addEventListener("click",e=>{const tr=e.target.closest("tr");if(tr?.dataset.player)showPlayerDetail(tr.dataset.player);});
+
+$("yahoo-prices-import").addEventListener("click",()=>{try{
+ const incoming=parseYahooPrices($("yahoo-prices-paste").value);
+ const existing=JSON.parse(localStorage.getItem(fullBackupKey)||"[]");
+ const merged=mergeYahooPrices(existing,incoming);
+ localStorage.setItem(fullBackupKey,JSON.stringify(merged));
+ $("price-status").textContent="Yahoo 價格本次 "+incoming.length+" 人，累積 "+merged.length+" 人，已保存在本機。";
+ if(projectionPlayers.length)displayRankings(projectionPlayers);
+ }catch(err){$("price-status").textContent="Yahoo 價格解析失敗："+err.message;}});
