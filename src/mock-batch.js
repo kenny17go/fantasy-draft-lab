@@ -61,7 +61,7 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
  });
  // Do not fabricate prices after an auction to make the accounting look balanced.
  // A realistic league is valid only when all teams spend within $10 of the cap.
- if(teams.some(t=>t.spent<minSpend||t.spent>cfg.budget))throw Error("預算驗證失敗：14 隊必須各花 $"+(cfg.budget-10)+"～$"+cfg.budget+"；本場結果不列入推薦，需改善競價節奏");
+ if(teams.some(t=>t.spent<minSpend||t.spent>cfg.budget))throw Error("預算驗證失敗：14 隊必須各花 $"+minSpend+"～$"+cfg.budget+"；實際花費 "+teams.map(t=>t.spent).join(", ")+"；本場結果不列入推薦");
  const evaluation=evaluateDraft(state,players);
  const order=new Map(evaluation.standings.map((x,i)=>[x.team,{rank:i+1,score:x.score}]));
  teams.forEach(t=>{t.rank=order.get(t.team).rank;t.score=order.get(t.team).score;});
