@@ -149,7 +149,7 @@ renderMock();
 const mockArchiveKey=m=>"fantasy-draft-lab:v1:mock-archive:"+m;
 let batchGeneration=0;
 let batchResult=null;
-function loadArchive(){try{const x=JSON.parse(localStorage.getItem(mockArchiveKey(mode))||"null");return x?.results&&x?.ranked?x:null;}catch{return null;}}
+function loadArchive(){try{const x=JSON.parse(localStorage.getItem(mockArchiveKey(mode))||"null");return Array.isArray(x?.results)?x:null;}catch{return null;}}
 function storeArchive(data){try{localStorage.setItem(mockArchiveKey(mode),JSON.stringify({version:2,results:data.results.map(r=>({seed:r.seed,scenario:r.scenario,mode:r.mode,winner:r.winner,metric:r.metric,teams:r.teams})),ranked:[]}));return true;}catch{return false;}}
 const batchSection=document.createElement("section");batchSection.className="panel";
 batchSection.innerHTML='<h2>Mock Draft 模擬紀錄庫</h2><p class="hint">每場 14 隊完整模擬；按場次查看最佳球隊、排名與陣容。結果是模型產生，並非 Yahoo 真實成交紀錄。僅保存在目前瀏覽器。</p><div class="actions"><button type="button" id="batch-run">產生 100 場 Mock Draft</button><button type="button" id="batch-clear" class="secondary">清除本機模擬紀錄</button></div><p id="batch-status" role="status"></p><label>選擇模擬場次 <select id="batch-select"></select></label><div class="table-wrap"><table><thead><tr><th>場內排名</th><th>隊伍</th><th>預估分數</th><th>花費</th><th>參考價差</th></tr></thead><tbody id="batch-results"></tbody></table></div><details id="batch-details"><summary>球隊完整陣容與成交價</summary><div id="batch-detail"></div></details>';
@@ -195,5 +195,5 @@ $("batch-run").addEventListener("click",()=>{
  };
  setTimeout(next,0);
 });
-$("batch-clear").addEventListener("click",()=>{batchGeneration++;$("batch-run").disabled=false;if(!confirm("確定清除目前模式的 Mock Draft 紀錄？"))return;localStorage.removeItem(mockArchiveKey(mode));batchResult=null;showBatch();});
+$("batch-clear").addEventListener("click",()=>{if(!confirm("確定清除目前模式的 Mock Draft 紀錄？"))return;batchGeneration++;$("batch-run").disabled=false;localStorage.removeItem(mockArchiveKey(mode));batchResult=null;showBatch();});
 batchResult=loadArchive();showBatch();
