@@ -130,8 +130,26 @@ $("ranking-groups").addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===
 const mockArchiveKey=m=>"fantasy-draft-lab:v1:mock-archive:"+m;
 let batchGeneration=0;
 let batchResult=null;
-function loadArchive(){try{const x=JSON.parse(localStorage.getItem(mockArchiveKey(mode))||"null");return Array.isArray(x?.results)?x:null;}catch{return null;}}
-function storeArchive(data){try{localStorage.setItem(mockArchiveKey(mode),JSON.stringify({version:2,results:data.results.map(r=>({seed:r.seed,scenario:r.scenario,mode:r.mode,winner:r.winner,metric:r.metric,teams:r.teams})),ranked:[]}));return true;}catch{return false;}}
+function loadArchive(){try{const x=JSON.parse(localStorage.getItem(mockArchiveKey(mode))||"null");return normalizeArchive(x);}catch{return null;}}
+function storeArchive(data){
+ // Save each roster once; recompute cross-run recommendations from stored stats.
+ const compact={version:3,results:data.results.map(r=>({
+  seed:r.seed,scenario:r.scenario,mode:r.mode,winner:r.winner,metric:r.metric,
+  teams:r.teams.map(t=>({
+   team:t.team,rank:t.rank,score:t.score,spent:t.spent,bargain:t.bargain,
+   stats:t.stats,players:t.players.map(p=>[p.player,p.price])
+  }))
+ }))};
+ try{localStorage.setItem(mockArchiveKey(mode),JSON.stringify(compact));return true;}
+ catch{return false;}
+}
+function normalizeArchive(data){
+ if(!data||!Array.isArray(data.results))return null;
+ if(data.version!==3)return data;
+ return {...data,results:data.results.map(r=>({...r,teams:r.teams.map(t=>({
+  ...t,players:t.players.map(p=>Array.isArray(p)?{player:p[0],price:p[1]}:p)
+ }))}))};
+}
 const batchSection=document.createElement("section");batchSection.className="panel";
 batchSection.innerHTML='<h2>Mock Draft 模擬紀錄庫</h2><p class="hint">每場 14 隊完整模擬；按場次查看最佳球隊、排名與陣容。結果是模型產生，並非 Yahoo 真實成交紀錄。僅保存在目前瀏覽器。</p><div class="actions"><button type="button" id="batch-run">產生 100 場 Mock Draft</button><button type="button" id="batch-clear" class="secondary">清除本機模擬紀錄</button></div><p id="batch-status" role="status"></p><div id="batch-top"><h3>跨場最佳策略 Top 5</h3><p class="hint">跨場九項預測比較，前三名優先參考；非實際勝率。</p><div id="batch-top-list"></div></div><label>選擇模擬場次 <select id="batch-select"></select></label><div class="table-wrap"><table><thead><tr><th>場內排名</th><th>隊伍</th><th>預估分數</th><th>花費</th><th>參考價差</th></tr></thead><tbody id="batch-results"></tbody></table></div><details id="batch-details"><summary>球隊完整陣容與成交價</summary><div id="batch-detail"></div></details>';
 document.querySelector("#purchase").closest("section.panel").before(batchSection);
