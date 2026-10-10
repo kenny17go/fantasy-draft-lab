@@ -14,3 +14,9 @@
 }
 
 .ranking-table th.sortable{cursor:pointer;user-select:none;touch-action:manipulation}.ranking-table th.sortable::after{content:" ↕";font-size:.8em;opacity:.6}.ranking-table th.sortable[aria-sort="descending"]::after{content:" ↓";opacity:1}.ranking-table th.sortable[aria-sort="ascending"]::after{content:" ↑";opacity:1}.ranking-table th.sortable:focus-visible{outline:2px solid #8bc6ff;outline-offset:-2px}
+
+/* Player details open immediately over the current row, rather than below 200 players. */
+#player-detail:not([hidden]){position:fixed;inset:0;z-index:1000;overflow-y:auto;margin:0;padding:max(54px,env(safe-area-inset-top)) max(16px,calc((100vw - 650px)/2)) 24px;background:rgba(5,12,24,.97);border-radius:0;box-shadow:none;overscroll-behavior:contain}
+#player-detail .detail-close{width:auto;margin:0 0 18px auto;padding:9px 16px;background:#294a72}
+#player-detail .detail-grid .metric b{overflow-wrap:anywhere;font-size:clamp(.85rem,3vw,1.1rem)}
+.ranking-sort-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0}.ranking-sort-controls select{width:min(100%,370px);margin:0}
