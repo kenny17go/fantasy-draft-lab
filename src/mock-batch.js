@@ -28,7 +28,10 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    const bids=eligible.map(({team,stats})=>{
     const scenarioFactor=scenario==="aggressive"?1.18:scenario==="conservative"?.85:scenario==="mixed"?(team%2?1.18:.85):1;
     const factor=styles[team-1]*scenarioFactor*(.9+random()*.2);
-    return {team,bid:Math.max(1,Math.min(stats.maxBid,Math.round(target*factor)))};
+    // Managers with excess unspent cash bid more aggressively while there are still choices.
+    const cashPerSlot=stats.remaining/stats.open;
+    const pace=Math.max(1,Math.min(3,cashPerSlot/(cfg.budget/cfg.slots)));
+    return {team,bid:Math.max(1,Math.min(stats.maxBid,Math.round(target*factor*pace)))};
    }).sort((a,b)=>b.bid-a.bid||a.team-b.team);
    const affordable=bids.filter(b=>b.bid>=floor);
    if(!affordable.length)continue;
@@ -50,6 +53,9 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
   const spent=picks.reduce((s,p)=>s+p.price,0);
   return {team:i+1,players:picks,stats:teamCategories(roster),spent,reference,bargain:reference-spent};
  });
+ // Do not fabricate prices after an auction to make the accounting look balanced.
+ // A full-budget league is valid only when every bid genuinely clears during the simulation.
+ if(teams.some(t=>t.spent!==cfg.budget))throw Error("預算驗證失敗：14 隊未全部花滿 $"+cfg.budget+"；本場結果不列入推薦，需改善競價節奏");
  const evaluation=evaluateDraft(state,players);
  const order=new Map(evaluation.standings.map((x,i)=>[x.team,{rank:i+1,score:x.score}]));
  teams.forEach(t=>{t.rank=order.get(t.team).rank;t.score=order.get(t.team).score;});
