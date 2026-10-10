@@ -3,13 +3,13 @@
 Mobile-first, browser-only Yahoo Fantasy Basketball auction draft assistant.
 
 ## Current status
-V0.4 position-validation preview (not a production-ready fantasy valuation tool).
+V0.5 scarcity and simulation preview (not a production-ready fantasy valuation tool).
 
 - 14-team H2H 9-Cat, $200, 12 drafted players/team (168 total), 1 IL.
 - 14-team ROTO 9-Cat, $200, 9 drafted players/team (126 total), 1 IL.
 - Track winning bids, enforce minimum $1 per remaining roster spot, prevent duplicate player purchases.
 - Separate localStorage draft state per mode, JSON backup/import, undo last pick.
-- CSV projection import and nine-category Z-scores using GP-weighted totals and attempt-weighted FG/FT impact.\n- Replacement-level, budget-conserving auction price estimates that reprice after sales.\n- Bipartite matching validates whether imported players can occupy the team's Yahoo PG/SG/G/SF/PF/F/C/UTIL/BN slots.\n- No bundled projection dataset, position-scarcity pricing, Yahoo API integration, or auto-bidding yet.
+- CSV projection import and nine-category Z-scores using GP-weighted totals and attempt-weighted FG/FT impact.\n- Replacement-level, budget-conserving auction price estimates that reprice after sales.\n- Bipartite matching validates whether imported players can occupy the team's Yahoo PG/SG/G/SF/PF/F/C/UTIL/BN slots.\n- Capped mandatory-position supply/demand heuristic in auction estimates, and isolated 14-team deterministic draft simulation.\n- No bundled projection dataset, optimal position-constrained valuation, Yahoo API integration, or auto-bidding yet.
 
 ## Run
 Serve the repository as static files and open the local URL.
@@ -35,3 +35,6 @@ For each league, the model reserves $1 for every unfilled roster slot, uses the 
 
 ## V0.4 position checks
 The draft tracker checks roster feasibility for players whose names exactly match imported projections. Multiple eligible positions can be reassigned to fit the whole roster. Unknown manually entered names are flagged as **unverified** rather than given invented eligibility. Current auction estimates remain Z-score replacement-level values and **do not yet incorporate position scarcity**; league-wide position-constrained optimal allocation and individual team price adjustments are pending. This is not a Yahoo roster sync.
+
+## V0.5 scope and caveats
+The scarcity heuristic compares mandatory base-position slot demand (PG, SG, SF, PF, C) with eligible-player supply in the uploaded pool, and applies a capped 0.35 Z-score bonus. Flexible positions are not counted in demand. This is a transparent approximation, **not** an exact position-constrained auction equilibrium. The full-draft simulation assigns players greedily to each team, verifies each team's final roster via bipartite matching, and uses deterministic $1 bids plus a final-slot spend to test $2,800 conservation. It does **not** model rational market bids and may fail for some pools even if a different assignment exists. Simulations never modify actual draft records.
