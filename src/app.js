@@ -4,6 +4,7 @@ import {parseYahooMobileText,mergeProjectionPlayers} from "./yahoo-mobile.js";
 import {yahooProjectedToCsv} from "./yahoo-import.js";
 import {parseProjections,rankProjections} from "./projections.js";
 import {auctionValues} from "./auction.js";
+import {createMock,autoMockTo,mockAuctionStep,mockCandidates} from "./mock-draft.js";
 import {CATEGORIES,puntRankings,rotoStandings} from "./strategy.js";
 import {scarcityFactors,simulateDraft} from "./simulation.js";
 import {evaluateDraft} from "./evaluation.js";
@@ -20,7 +21,7 @@ function cell(row,text){const td=document.createElement("td");td.textContent=Str
 function render(){const c=CONFIG[mode];$("punt-controls").hidden=mode!=="h2h";$("roto-controls").hidden=mode!=="roto";$("mode").value=mode;$("summary").replaceChildren();for(const [label,value] of [["隊伍",c.teams],["每隊預算","$"+c.budget],["每隊名額",c.slots],["總選秀名額",c.teams*c.slots]]){const el=document.createElement("div");el.className="metric";const s=document.createElement("span"),b=document.createElement("b");s.textContent=label;b.textContent=value;el.append(s,b);$("summary").append(el);}$("roster").textContent="位置配置："+c.roster;$("team").replaceChildren();$("teams").replaceChildren();for(let n=1;n<=c.teams;n++){const opt=document.createElement("option");opt.value=n;opt.textContent="Team "+n;$("team").append(opt);const t=teamStats(state,n),tr=document.createElement("tr");for(const value of ["Team "+n,t.count+"/"+c.slots,"$"+t.spent,"$"+t.remaining,"$"+t.maxBid,projectionPlayers.length?(()=>{const r=rosterForTeam(state,projectionPlayers,n);return r.assignment===null?"位置衝突":r.unknown?"待核對 "+r.unknown:"可配置";})():"未載入"])cell(tr,value);$("teams").append(tr);}$("history").replaceChildren();state.picks.forEach((p,i)=>{const tr=document.createElement("tr");for(const value of [i+1,p.player,"Team "+p.team,"$"+p.price])cell(tr,value);$("history").append(tr);});$("undo").disabled=!state.picks.length;if(projectionPlayers.length)displayRankings(projectionPlayers);}
 function checkPosition(pick){if(!projectionPlayers.length)return;const map=new Map(projectionPlayers.map(p=>[p.player.toLocaleLowerCase(),p]));const target=map.get(pick.player.trim().toLocaleLowerCase());if(!target)return;const existing=state.picks.filter(p=>p.team===Number(pick.team)).map(p=>map.get(p.player.toLocaleLowerCase())).filter(Boolean);if(!canAddToRoster(existing,target,mode))throw Error("球員位置無法排入該隊剩餘陣容");}
 function feedback(message){$("feedback").textContent=message;}
-$("mode").addEventListener("change",e=>{mode=e.target.value;state=load(mode);feedback("");render();});
+$("mode").addEventListener("change",e=>{mode=e.target.value;state=load(mode);mock=createMock(mode);feedback("");render();renderMock();});
 $("purchase").addEventListener("submit",e=>{e.preventDefault();try{const pick={player:$("player").value,team:$("team").value,price:$("price").value};checkPosition(pick);state=addPick(state,pick);save();$("player").value="";$("price").value="1";feedback("成交已保存");render();}catch(err){feedback(err.message);}});
 $("undo").addEventListener("click",()=>{if(!state.picks.length)return;state={...state,picks:state.picks.slice(0,-1)};save();feedback("已復原上一筆");render();});
 $("reset").addEventListener("click",()=>{if(!confirm("確定清除目前 "+CONFIG[mode].label+" 的所有成交紀錄？"))return;state=fresh(mode);save();feedback("已清除");render();});
@@ -124,3 +125,21 @@ document.getElementById("ranking-columns-default").addEventListener("click",()=>
 // Sort from any expanded group's header.
 $("ranking-groups").addEventListener("click",e=>{const th=e.target.closest("th.sortable");if(!th)return;const k=th.dataset.field;const current=typeof rankingSort.column==="number"?({1:"name",3:"gp",4:"z",5:"model",6:"avg",7:"proj"}[rankingSort.column]||"z"):rankingSort.column;rankingSort={column:k==="name"?1:({gp:3,z:4,model:5,avg:6,proj:7}[k]??k),ascending:current===k?!rankingSort.ascending:k==="name"||k==="tov"};displayRankings(projectionPlayers);});
 $("ranking-groups").addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches("th.sortable")){e.preventDefault();e.target.click();}});
+
+
+let mock=createMock(mode);
+function mockPriceData(){let prices=[];try{prices=JSON.parse(localStorage.getItem("fantasy-draft-lab:v1:prices")||"[]");}catch{}let values=[];try{values=auctionValues(projectionPlayers,mode,fresh(mode)).values;}catch{}return {prices,values};}
+function renderMock(){
+ const c=CONFIG[mode],count=mock.state.picks.length;
+ $("mock-status").textContent=count+" / "+(c.teams*c.slots)+" 筆成交；Team 1 已選 "+teamStats(mock.state,1).count+" / "+c.slots+" 人。Mock 資料與真實紀錄分開。";
+ const next=projectionPlayers.length?mockCandidates(mock,projectionPlayers)[0]:null;
+ $("mock-next-player").textContent=next?"下一位："+next.player+"；Team 1 最高合法出價 $"+teamStats(mock.state,1).maxBid:"請先匯入球員預測，或已無可用球員";
+ $("mock-teams").replaceChildren();
+ for(let team=1;team<=c.teams;team++){const t=teamStats(mock.state,team),tr=document.createElement("tr");for(const value of ["Team "+team,t.count+"/"+c.slots,"$"+t.spent,"$"+t.remaining,"$"+t.maxBid])cell(tr,value);$("mock-teams").append(tr);}
+ $("mock-history").replaceChildren();
+ mock.state.picks.forEach((p,i)=>{const tr=document.createElement("tr");for(const v of [i+1,p.player,"Team "+p.team,"$"+p.price])cell(tr,v);$("mock-history").append(tr);});
+}
+$("mock-auto").addEventListener("click",()=>{try{if(projectionPlayers.length<CONFIG[mode].teams*CONFIG[mode].slots)throw Error("預測球員不足");const data=mockPriceData(),result=autoMockTo(mock,projectionPlayers,data.prices,data.values,84);mock=result.mock;renderMock();$("mock-status").textContent+=" 已自動新增 "+result.events.length+" 筆，現在可由 Team 1 參與下一位競標。";}catch(e){$("mock-status").textContent="模擬失敗："+e.message;}});
+$("mock-next").addEventListener("click",()=>{try{if(!projectionPlayers.length)throw Error("請先匯入球員預測");const data=mockPriceData(),bid=Number($("mock-bid").value);if(!Number.isSafeInteger(bid)||bid<0)throw Error("出價請輸入 0（不競標）或正整數");const result=mockAuctionStep(mock,projectionPlayers,data.prices,data.values,bid);mock=result.mock;renderMock();$("mock-status").textContent+=" 本次 "+result.player+" 由 Team "+result.winner+" 以 $"+result.price+" 得標。";}catch(e){$("mock-status").textContent="競標失敗："+e.message;}});
+$("mock-reset").addEventListener("click",()=>{if(!confirm("重新開始獨立 Mock Draft？真實成交紀錄不受影響。"))return;mock=createMock(mode);renderMock();});
+renderMock();
