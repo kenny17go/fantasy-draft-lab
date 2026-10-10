@@ -1,13 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {buildLeagueMarket,leagueTarget,priceReality} from "../src/league-market.js";
+import {buildLeagueMarket,leagueTarget,minimumLeagueBid,priceReality} from "../src/league-market.js";
 import {recommendMockTeams} from "../src/mock-recommendations.js";
 const prices=Array.from({length:20},(_,i)=>({player:"Player "+(i+1),avg:80-i*3}));
 test("elite five carry the highest league premiums",()=>{
  const m=buildLeagueMarket(prices);
  assert.equal(leagueTarget({player:"Player 1"},80,m),106);
  assert.equal(leagueTarget({player:"Player 10"},53,m),64);
- assert.equal(leagueTarget({player:"Player 20"},23,m),20);
+ assert.equal(leagueTarget({player:"Player 20"},23,m),24);
 });
 test("underpriced elite pick is not credible",()=>{
  const m=buildLeagueMarket(prices);
@@ -19,4 +19,12 @@ test("top-five does not recommend an underpriced superstar",()=>{
  const teams=[{team:1,players:[{player:"Player 1",price:50}],stats},{team:2,players:[{player:"Player 1",price:110}],stats}];
  const best=recommendMockTeams([{teams,scenario:"normal"}],5,prices);
  assert.ok(best.every(t=>t.team!==1));
+});
+
+test("only Yahoo reference $5 or below may clear at $1",()=>{
+ const m=buildLeagueMarket([{player:"Low",avg:5},{player:"Mid",avg:6},{player:"High",avg:30}]);
+ assert.equal(minimumLeagueBid({player:"Low"},5,m),1);
+ assert.ok(minimumLeagueBid({player:"Mid"},6,m)>6);
+ assert.ok(minimumLeagueBid({player:"High"},30,m)>30);
+ assert.equal(priceReality({players:[{player:"Mid",price:1}]},m).credible,false);
 });
