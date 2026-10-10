@@ -11,6 +11,7 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
  if(players.length<cfg.teams*cfg.slots)throw Error("預測球員不足");
  const random=rng(seed),ranked=rankProjections(players),yahoo=new Map(prices.map(p=>[key(p),p])),league=buildLeagueMarket(prices);
  const rosters=Array.from({length:cfg.teams},()=>[]),styles=rosters.map(()=>.85+random()*.3);
+ const minSpend=cfg.budget-10;
  let state=fresh(mode),log=[];
  while(state.picks.length<cfg.teams*cfg.slots){
   const taken=new Set(state.picks.map(p=>p.player.toLowerCase()));
@@ -30,8 +31,13 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
     const factor=styles[team-1]*scenarioFactor*(.9+random()*.2);
     // Managers with excess unspent cash bid more aggressively while there are still choices.
     const cashPerSlot=stats.remaining/stats.open;
-    const pace=Math.max(1,Math.min(3,cashPerSlot/(cfg.budget/cfg.slots)));
-    return {team,bid:Math.max(1,Math.min(stats.maxBid,Math.round(target*factor*pace)))};
+    const pace=Math.max(1,Math.min(2.5,cashPerSlot/(cfg.budget/cfg.slots)));
+    // Spend the available budget during bidding, not by editing auction prices afterward.
+    // Reserve enough money for the remaining slots and prioritize high-value nominations.
+    const budgetBid=Math.round(cashPerSlot*(.85+Math.max(0,Math.min(1,p.total/12))*.5));
+    const planned=Math.max(Math.round(target*factor*pace),budgetBid);
+    const minimumToFinish=stats.open===1?Math.max(1,stats.remaining-10):1;
+    return {team,bid:Math.max(1,Math.min(stats.maxBid,Math.max(minimumToFinish,planned)))};
    }).sort((a,b)=>b.bid-a.bid||a.team-b.team);
    const affordable=bids.filter(b=>b.bid>=floor);
    if(!affordable.length)continue;
@@ -55,7 +61,7 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
  });
  // Do not fabricate prices after an auction to make the accounting look balanced.
  // A realistic league is valid only when all teams spend within $10 of the cap.
- if(teams.some(t=>t.spent<cfg.budget-10||t.spent>cfg.budget))throw Error("預算驗證失敗：14 隊必須各花 $"+(cfg.budget-10)+"～$"+cfg.budget+"；本場結果不列入推薦，需改善競價節奏");
+ if(teams.some(t=>t.spent<minSpend||t.spent>cfg.budget))throw Error("預算驗證失敗：14 隊必須各花 $"+(cfg.budget-10)+"～$"+cfg.budget+"；本場結果不列入推薦，需改善競價節奏");
  const evaluation=evaluateDraft(state,players);
  const order=new Map(evaluation.standings.map((x,i)=>[x.team,{rank:i+1,score:x.score}]));
  teams.forEach(t=>{t.rank=order.get(t.team).rank;t.score=order.get(t.team).score;});
