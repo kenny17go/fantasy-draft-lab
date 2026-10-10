@@ -8,7 +8,7 @@ test("full mock evaluates 14 teams with legal budget and roster count",()=>{
  assert.equal(run.teams.length,14);
  assert.equal(run.log.length,CONFIG.roto.teams*CONFIG.roto.slots);
  assert.equal(run.teams.filter(t=>t.rank===1).length,1);
- for(const team of run.teams){assert.equal(team.players.length,CONFIG.roto.slots);assert.ok(team.spent<=200);assert.ok(team.spent>=CONFIG.roto.slots);}
+ for(const team of run.teams){assert.equal(team.players.length,CONFIG.roto.slots);assert.equal(team.spent,200);}
 });
 test("seeded mock is reproducible",()=>{
  const a=runFullMock(players,[],"roto",19),b=runFullMock(players,[],"roto",19);
@@ -28,7 +28,7 @@ test("multiple H2H mock seeds finish without duplicate players or budget violati
   assert.equal(new Set(run.log.map(p=>p.player)).size,run.log.length);
   for(const t of run.teams){
    assert.equal(t.players.length,CONFIG.h2h.slots);
-   assert.ok(t.spent<=200);
+   assert.equal(t.spent,200);
    assert.ok(t.players.every(p=>p.price>=1));
   }
  }
