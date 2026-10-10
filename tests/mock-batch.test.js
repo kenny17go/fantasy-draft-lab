@@ -33,3 +33,17 @@ test("multiple H2H mock seeds finish without duplicate players or budget violati
   }
  }
 });
+
+test("100 complete H2H auctions satisfy every team budget and roster requirement",()=>{
+ const scenarios=["normal","normal","aggressive","conservative","mixed"];
+ for(let i=0;i<100;i++){
+  const run=runFullMock(players,[],"h2h",i+1,scenarios[i%scenarios.length]);
+  assert.equal(run.teams.length,14);
+  assert.equal(run.log.length,168);
+  assert.equal(new Set(run.log.map(p=>p.player)).size,168);
+  for(const team of run.teams){
+   assert.equal(team.players.length,12,`run ${i+1}, team ${team.team}`);
+   assert.ok(team.spent>=190&&team.spent<=200,`run ${i+1}, team ${team.team}: $${team.spent}`);
+  }
+ }
+});
