@@ -24,7 +24,14 @@ test("top-five does not recommend an underpriced superstar",()=>{
 test("only Yahoo reference $5 or below may clear at $1",()=>{
  const m=buildLeagueMarket([{player:"Low",avg:5},{player:"Mid",avg:6},{player:"High",avg:30}]);
  assert.equal(minimumLeagueBid({player:"Low"},5,m),1);
- assert.ok(minimumLeagueBid({player:"Mid"},6,m)>6);
- assert.ok(minimumLeagueBid({player:"High"},30,m)>30);
+ assert.equal(minimumLeagueBid({player:"Mid"},6,m),6);
+ assert.equal(minimumLeagueBid({player:"High"},30,m),30);
  assert.equal(priceReality({players:[{player:"Mid",price:1}]},m).credible,false);
+});
+
+test("fractional Yahoo reference above $5 rounds up to next dollar",()=>{
+ const m=buildLeagueMarket([{player:"Fraction",avg:12.4}]);
+ assert.equal(minimumLeagueBid({player:"Fraction"},12.4,m),13);
+ assert.equal(priceReality({players:[{player:"Fraction",price:12}]},m).credible,false);
+ assert.equal(priceReality({players:[{player:"Fraction",price:13}]},m).credible,true);
 });
