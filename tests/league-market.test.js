@@ -35,3 +35,13 @@ test("fractional Yahoo reference above $5 rounds up to next dollar",()=>{
  assert.equal(priceReality({players:[{player:"Fraction",price:12}]},m).credible,false);
  assert.equal(priceReality({players:[{player:"Fraction",price:13}]},m).credible,true);
 });
+
+test("Yahoo prices at $50 or more require at least ten percent premium",()=>{
+ const m=buildLeagueMarket([{player:"Below",avg:49.99},{player:"At",avg:50},{player:"Above",avg:62},{player:"Elite",avg:81.6}]);
+ assert.equal(minimumLeagueBid({player:"Below"},49.99,m),50);
+ assert.equal(minimumLeagueBid({player:"At"},50,m),55);
+ assert.equal(minimumLeagueBid({player:"Above"},62,m),69);
+ assert.equal(minimumLeagueBid({player:"Elite"},81.6,m),90);
+ assert.equal(priceReality({players:[{player:"At",price:54}]},m).credible,false);
+ assert.equal(priceReality({players:[{player:"At",price:55}]},m).credible,true);
+});
