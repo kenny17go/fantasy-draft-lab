@@ -3,7 +3,7 @@
 Mobile-first, browser-only Yahoo Fantasy Basketball auction draft assistant.
 
 ## Current status
-V0.5 scarcity and simulation preview (not a production-ready fantasy valuation tool).
+V0.6 H2H punt / ROTO standings preview (not a production-ready fantasy valuation tool).
 
 - 14-team H2H 9-Cat, $200, 12 drafted players/team (168 total), 1 IL.
 - 14-team ROTO 9-Cat, $200, 9 drafted players/team (126 total), 1 IL.
@@ -38,3 +38,6 @@ The draft tracker checks roster feasibility for players whose names exactly matc
 
 ## V0.5 scope and caveats
 The scarcity heuristic compares mandatory base-position slot demand (PG, SG, SF, PF, C) with eligible-player supply in the uploaded pool, and applies a capped 0.35 Z-score bonus. Flexible positions are not counted in demand. This is a transparent approximation, **not** an exact position-constrained auction equilibrium. The full-draft simulation assigns players greedily to each team, verifies each team's final roster via bipartite matching, and uses deterministic $1 bids plus a final-slot spend to test $2,800 conservation. It does **not** model rational market bids and may fail for some pools even if a different assignment exists. Simulations never modify actual draft records.
+
+## V0.6 strategy analysis
+H2H: Punt checkboxes remove selected category Z-scores from displayed player ranking. This is a strategy ranking, **not** a change to auction dollar valuation. ROTO: when all 14 teams have nine drafted players each and all player projections are available, the app totals projected seasonal categories, calculates attempt-weighted team FG%/FT%, ranks all 14 teams in each of nine categories (TO ascending), and averages occupied ranking points on ties. ROTO results are not shown for incomplete leagues; these are projections, not live Yahoo standings. IL slots are excluded.
