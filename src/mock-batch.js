@@ -17,6 +17,15 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
   const taken=new Set(state.picks.map(p=>p.player.toLowerCase()));
   const available=ranked.filter(p=>!taken.has(key(p)));
   const open=rosters.map((r,i)=>({team:i+1,stats:teamStats(state,i+1)})).filter(x=>x.stats.open);
+  // These quantities are invariant across candidate players within this round.
+  const progress=state.picks.length/(cfg.teams*cfg.slots);
+  const scenarioFactors=new Map(open.map(({team})=>[team,scenario==="aggressive"?1.18:scenario==="conservative"?.85:scenario==="mixed"?(team%2?1.18:.85):1]));
+  const categoryNeeds=new Map(open.map(({team})=>[team,1+Math.min(.22,rosters[team-1].length*.012)]));
+  const budgetFactors=new Map(open.map(({team,stats})=>{
+   const discretionary=Math.max(0,stats.remaining-stats.open);
+   const perOpen=stats.open>0?discretionary/stats.open:0;
+   return [team,biddingMode==="budget-aware"?1+Math.min(.25,Math.max(0,perOpen-12)/40)*Math.max(0,(progress-.25)/.75):1];
+  }));
   // Nomination belongs to a real team, rotating past completed rosters.
   const nextSeat=state.picks.length%cfg.teams+1;
   const nominator=open.find(x=>x.team>=nextSeat)??open[0];
@@ -33,20 +42,9 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    // A nominator must be able to pay the opening bid, reserving $1 per unfilled slot.
    if(nominator.stats.maxBid<opening)continue;
    const bids=eligible.map(({team,stats})=>{
-    const scenarioFactor=scenario==="aggressive"?1.18:scenario==="conservative"?.85:scenario==="mixed"?(team%2?1.18:.85):1;
-    const factor=styles[team-1]*scenarioFactor*(.9+random()*.2);
-    // Willingness to pay is player-specific; never force it toward cash per slot.
-    // Teams differ in valuation, and competition sets the clearing price.
-    const categoryNeed=1+Math.min(.22,rosters[team-1].length*.012);
-    // Budget-aware experiment: modestly increase willingness late in a draft
-    // when a team has spare discretionary cash. Never bid simply to exhaust cash.
-    const progress=state.picks.length/(cfg.teams*cfg.slots);
-    const discretionary=Math.max(0,stats.remaining-stats.open);
-    const perOpen=stats.open>0?discretionary/stats.open:0;
-    const budgetFactor=biddingMode==="budget-aware"
-      ?1+Math.min(.25,Math.max(0,perOpen-12)/40)*Math.max(0,(progress-.25)/.75)
-      :1;
-    const willingness=Math.max(1,Math.round(target*factor*categoryNeed*budgetFactor));
+    const factor=styles[team-1]*scenarioFactors.get(team)*(.9+random()*.2);
+    // Only the per-player random valuation varies across candidates.
+    const willingness=Math.max(1,Math.round(target*factor*categoryNeeds.get(team)*budgetFactors.get(team)));
     return {team,bid:Math.max(1,Math.min(stats.maxBid,willingness))};
    }).sort((a,b)=>b.bid-a.bid||a.team-b.team);
    const affordable=bids.filter(b=>b.bid>=1);
