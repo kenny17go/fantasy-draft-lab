@@ -27,9 +27,13 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    return [team,biddingMode==="budget-aware"?1+Math.min(.25,Math.max(0,perOpen-12)/40)*Math.max(0,(progress-.25)/.75):1];
   }));
   // Nomination belongs to a real team, rotating past completed rosters.
-  const nominator=open.find(x=>x.team>=nominationSeat)??open[0];
-  // Advance by nomination turn, not by the winning team. Skip completed rosters.
-  nominationSeat=nominator.team%cfg.teams+1;
+  let nominator;
+  do {
+   const phase=nominationTurn%(cfg.teams*2);
+   const seat=nominationOrder==="snake"?(phase<cfg.teams?phase+1:cfg.teams*2-phase):nominationTurn%cfg.teams+1;
+   nominationTurn++;
+   nominator=open.find(x=>x.team===seat);
+  } while(!nominator);
   let chosen=null;
   // Nominate the highest-ranked remaining player that this team can legally
   // nominate and roster. No random nomination window.
