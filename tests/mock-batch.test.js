@@ -43,7 +43,7 @@ test("100 complete H2H auctions satisfy every team budget and roster requirement
   assert.equal(new Set(run.log.map(p=>p.player)).size,168);
   for(const team of run.teams){
    assert.equal(team.players.length,12,`run ${i+1}, team ${team.team}`);
-   assert.ok(team.spent>=CONFIG.roto.slots&&team.spent<=200,`run ${i+1}, team ${team.team}: $${team.spent}`);
+   assert.ok(team.spent>=CONFIG.h2h.slots&&team.spent<=200,`run ${i+1}, team ${team.team}: $${team.spent}`);
   }
  }
 });
