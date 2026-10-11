@@ -203,3 +203,32 @@ test("100 Yahoo-like forced-first-raise auctions report comparison metrics",()=>
  console.log("FORCED_RAISE_100_REPORT "+JSON.stringify({auctions:100,picks:pricesPaid.length,teamSpend:{min:Math.min(...spends),mean:mean(spends),max:Math.max(...spends)},winnerSpend:{min:Math.min(...winnerSpends),mean:mean(winnerSpends),max:Math.max(...winnerSpends)},oneDollarSales:pricesPaid.filter(x=>x===1).length,twentyPlus:pricesPaid.filter(x=>x>=20).length,fiftyPlus:pricesPaid.filter(x=>x>=50).length,maxSale:Math.max(...pricesPaid),nominatorWins,duplicates,overBudget}));
  assert.equal(pricesPaid.length,16800);assert.equal(duplicates,0);assert.equal(overBudget,0);
 });
+
+test("paired auction diagnostics locate when bidding power disappears",()=>{
+ const prices=players.map((p,i)=>({player:p.player,avg:i<5?75-i*5:i<18?49-(i-5)*2:i<65?22-(i-18)*.3:i<110?5+(110-i)*.1:1,proj:i<5?77-i*5:i<18?51-(i-5)*2:i<65?24-(i-18)*.3:i<110?6+(110-i)*.1:1}));
+ const report={};
+ for(const biddingMode of ["normal","forced-first-raise"]){
+  const rounds=[{sales:0,spent:0,oneDollar:0,meanEligibleRaisers:0},{sales:0,spent:0,oneDollar:0,meanEligibleRaisers:0},{sales:0,spent:0,oneDollar:0,meanEligibleRaisers:0}];
+  const teamSpent=[],teamRemaining=[],fullBudget=[],lowSpend=[],lastThirty=[],earlyHigh=[];
+  for(let seed=1;seed<=30;seed++){
+   const scenario=["normal","normal","aggressive","conservative","mixed"][(seed-1)%5];
+   const run=runFullMock(players,prices,"h2h",seed,scenario,biddingMode);
+   const spent=Array(14).fill(0),count=Array(14).fill(0);
+   for(let i=0;i<run.log.length;i++){
+    const sale=run.log[i],stage=i<56?0:i<112?1:2;
+    const legal=Array.from({length:14},(_,j)=>j+1).filter(team=>team!==sale.nominator&&count[team-1]<12&&200-spent[team-1]-(12-count[team-1]-1)>=sale.opening+1).length;
+    const bucket=rounds[stage];
+    bucket.sales++;bucket.spent+=sale.price;bucket.oneDollar+=Number(sale.price===1);bucket.meanEligibleRaisers+=legal;
+    if(i>=138)lastThirty.push(sale.price);
+    if(i<30&&sale.price>=50)earlyHigh.push(sale.price);
+    spent[sale.team-1]+=sale.price;count[sale.team-1]++;
+   }
+   for(const v of spent){teamSpent.push(v);teamRemaining.push(200-v);if(v===200)fullBudget.push(v);if(v<100)lowSpend.push(v);}
+  }
+  const mean=a=>a.reduce((s,v)=>s+v,0)/(a.length||1);
+  report[biddingMode]={teamSpendMean:mean(teamSpent),teamsBelow100:lowSpend.length,teamsAt200:fullBudget.length,remainingMean:mean(teamRemaining),last30MeanPrice:mean(lastThirty),first30HighSaleCount:earlyHigh.length,stages:rounds.map((x,i)=>({stage:i+1,meanPrice:x.spent/x.sales,oneDollarPct:100*x.oneDollar/x.sales,meanLegalRaisers:x.meanEligibleRaisers/x.sales}))};
+ }
+ console.log("AUCTION_STAGE_DIAGNOSTIC "+JSON.stringify(report));
+ assert.equal(report.normal.stages.length,3);
+ assert.equal(report["forced-first-raise"].stages.length,3);
+});
