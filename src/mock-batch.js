@@ -12,7 +12,7 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
  if(!["normal","forced-first-raise","budget-aware"].includes(biddingMode))throw Error("未知競標模式");
  const random=rng(seed),ranked=rankProjections(players),yahoo=new Map(prices.map(p=>[key(p),p])),league=buildLeagueMarket(prices);
  const rosters=Array.from({length:cfg.teams},()=>[]),styles=rosters.map(()=>.85+random()*.3);
- let state=fresh(mode),log=[];
+ let state=fresh(mode),log=[],nominationSeat=1;
  while(state.picks.length<cfg.teams*cfg.slots){
   const taken=new Set(state.picks.map(p=>p.player.toLowerCase()));
   const available=ranked.filter(p=>!taken.has(key(p)));
@@ -27,10 +27,12 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    return [team,biddingMode==="budget-aware"?1+Math.min(.25,Math.max(0,perOpen-12)/40)*Math.max(0,(progress-.25)/.75):1];
   }));
   // Nomination belongs to a real team, rotating past completed rosters.
-  const nextSeat=state.picks.length%cfg.teams+1;
-  const nominator=open.find(x=>x.team>=nextSeat)??open[0];
-  let choices=[];
-  // Nominate from the entire remaining pool; avoid an artificial top-16 ceiling.
+  const nominator=open.find(x=>x.team>=nominationSeat)??open[0];
+  // Advance by nomination turn, not by the winning team. Skip completed rosters.
+  nominationSeat=nominator.team%cfg.teams+1;
+  let chosen=null;
+  // Nominate the highest-ranked remaining player that this team can legally
+  // nominate and roster. No random nomination window.
   for(const p of available){
    if(!canAddToRoster(rosters[nominator.team-1],p,mode))continue;
    const eligible=open.filter(x=>canAddToRoster(rosters[x.team-1],p,mode));
@@ -67,14 +69,10 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
     winner=best.team;
     clearing=Math.min(best.bid,second+1);
    }
-   choices.push({p,reference,bid:clearing,team:winner,nominator:nominator.team,opening});
+   chosen={p,reference,bid:clearing,team:winner,nominator:nominator.team,opening};
+   break;
   }
-  if(!choices.length)throw Error("無符合位置及預算限制的可競標球員");
-  // Mix strong and low-cost nominations. A high bid does not guarantee a purchase:
-  // the winner only pays the price needed to beat the next willing bidder.
-  choices.sort((a,b)=>b.reference-a.reference);
-  const window=Math.min(choices.length,Math.max(24,Math.floor(choices.length*.65)));
-  const chosen=choices[Math.floor(random()*window)];
+  if(!chosen)throw Error("無符合位置及預算限制的可競標球員");
   const price=chosen.bid;
   state=addPick(state,{player:chosen.p.player,team:chosen.team,price});
   rosters[chosen.team-1].push(chosen.p);
