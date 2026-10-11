@@ -16,14 +16,21 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
   const taken=new Set(state.picks.map(p=>p.player.toLowerCase()));
   const available=ranked.filter(p=>!taken.has(key(p)));
   const open=rosters.map((r,i)=>({team:i+1,stats:teamStats(state,i+1)})).filter(x=>x.stats.open);
+  // Nomination belongs to a real team, rotating past completed rosters.
+  const nextSeat=state.picks.length%cfg.teams+1;
+  const nominator=open.find(x=>x.team>=nextSeat)??open[0];
   let choices=[];
   // Nominate from the entire remaining pool; avoid an artificial top-16 ceiling.
   for(const p of available){
+   if(!canAddToRoster(rosters[nominator.team-1],p,mode))continue;
    const eligible=open.filter(x=>canAddToRoster(rosters[x.team-1],p,mode));
-   if(!eligible.length)continue;
    const fallback=Math.max(1,Math.round(2+Math.max(0,p.total)*3));
    const reference=league.reference.get(key(p))??fallback;
    const target=leagueTarget(p,reference,league);
+   const yahooReference=league.reference.get(key(p));
+   const opening=yahooReference>10?Math.floor(yahooReference)+1:1;
+   // A nominator must be able to pay the opening bid, reserving $1 per unfilled slot.
+   if(nominator.stats.maxBid<opening)continue;
    const bids=eligible.map(({team,stats})=>{
     const scenarioFactor=scenario==="aggressive"?1.18:scenario==="conservative"?.85:scenario==="mixed"?(team%2?1.18:.85):1;
     const factor=styles[team-1]*scenarioFactor*(.9+random()*.2);
@@ -35,9 +42,18 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    }).sort((a,b)=>b.bid-a.bid||a.team-b.team);
    const affordable=bids.filter(b=>b.bid>=1);
    if(!affordable.length)continue;
-   const reserve=1;
-   const clearing=affordable.length>1?Math.min(affordable[0].bid,Math.max(reserve,affordable[1].bid+1)):reserve;
-   choices.push({p,reference,bid:clearing,team:affordable[0].team});
+   // The nominator commits to the opening bid. Other teams may outbid only
+   // if their own valuation and remaining legal budget permit it.
+   const challengers=affordable.filter(b=>b.team!==nominator.team&&b.bid>opening);
+   challengers.sort((a,b)=>b.bid-a.bid||a.team-b.team);
+   let winner=nominator.team,clearing=opening;
+   if(challengers.length){
+    const best=challengers[0];
+    const second=Math.max(opening,challengers[1]?.bid??0,affordable.find(b=>b.team===nominator.team)?.bid??0);
+    winner=best.team;
+    clearing=Math.min(best.bid,second+1);
+   }
+   choices.push({p,reference,bid:clearing,team:winner,nominator:nominator.team,opening});
   }
   if(!choices.length)throw Error("無符合位置及預算限制的可競標球員");
   // Mix strong and low-cost nominations. A high bid does not guarantee a purchase:
@@ -45,11 +61,10 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
   choices.sort((a,b)=>b.reference-a.reference);
   const window=Math.min(choices.length,Math.max(24,Math.floor(choices.length*.65)));
   const chosen=choices[Math.floor(random()*window)];
-  const stats=teamStats(state,chosen.team);
   const price=chosen.bid;
   state=addPick(state,{player:chosen.p.player,team:chosen.team,price});
   rosters[chosen.team-1].push(chosen.p);
-  log.push({player:chosen.p.player,team:chosen.team,price,reference:chosen.reference});
+  log.push({player:chosen.p.player,team:chosen.team,nominator:chosen.nominator,opening:chosen.opening,price,reference:chosen.reference});
  }
  const teams=rosters.map((roster,i)=>{
   const picks=state.picks.filter(p=>p.team===i+1);
