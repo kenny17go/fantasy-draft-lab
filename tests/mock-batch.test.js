@@ -386,7 +386,7 @@ test("compare snake and round-robin spending with matched seeds",()=>{
  console.log("SNAKE_VS_ROUND_ROBIN_REPORT "+JSON.stringify(report));
 });
 
-test("round-robin $180 spending target compared with budget-aware baseline",()=>{
+test("round-robin $200 spending goal compared with budget-aware baseline",()=>{
  const prices=players.map((p,i)=>({player:p.player,avg:i<5?75-i*5:i<18?49-(i-5)*2:i<65?22-(i-18)*.3:i<110?5+(110-i)*.1:1,proj:i<5?77-i*5:i<18?51-(i-5)*2:i<65?24-(i-18)*.3:i<110?6+(110-i)*.1:1}));
  const report={};
  for(const mode of ["h2h","roto"]){
@@ -407,5 +407,5 @@ test("round-robin $180 spending target compared with budget-aware baseline",()=>
    report[mode][strategy]={auctions:20,meanSpend:total/280,below180,minimum,all180};
   }
  }
- console.log("SPEND_TARGET_180_COMPARISON "+JSON.stringify(report));
+ console.log("SPEND_TARGET_200_COMPARISON "+JSON.stringify(report));
 });
