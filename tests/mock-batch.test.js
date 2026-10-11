@@ -385,3 +385,27 @@ test("compare snake and round-robin spending with matched seeds",()=>{
  }
  console.log("SNAKE_VS_ROUND_ROBIN_REPORT "+JSON.stringify(report));
 });
+
+test("round-robin $180 spending target compared with budget-aware baseline",()=>{
+ const prices=players.map((p,i)=>({player:p.player,avg:i<5?75-i*5:i<18?49-(i-5)*2:i<65?22-(i-18)*.3:i<110?5+(110-i)*.1:1,proj:i<5?77-i*5:i<18?51-(i-5)*2:i<65?24-(i-18)*.3:i<110?6+(110-i)*.1:1}));
+ const report={};
+ for(const mode of ["h2h","roto"]){
+  report[mode]={};
+  for(const strategy of ["budget-aware","spend-target"]){
+   let total=0,below180=0,minimum=200,all180=0;
+   for(let seed=1;seed<=20;seed++){
+    const run=runFullMock(players,prices,mode,seed,"normal",strategy,"round-robin");
+    assert.equal(run.log.length,14*CONFIG[mode].slots);
+    assert.equal(new Set(run.log.map(p=>p.player)).size,run.log.length);
+    if(run.teams.every(t=>t.spent>=180))all180++;
+    for(const team of run.teams){
+     assert.equal(team.players.length,CONFIG[mode].slots);
+     assert.ok(team.spent<=200);
+     total+=team.spent;below180+=Number(team.spent<180);minimum=Math.min(minimum,team.spent);
+    }
+   }
+   report[mode][strategy]={auctions:20,meanSpend:total/280,below180,minimum,all180};
+  }
+ }
+ console.log("SPEND_TARGET_180_COMPARISON "+JSON.stringify(report));
+});
