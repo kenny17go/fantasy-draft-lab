@@ -144,3 +144,30 @@ test("every nomination has a funded opening bid and either the nominator or a ch
   }
  }
 });
+
+test("100 Yahoo-like priced H2H auctions report spending and nomination behavior",()=>{
+ const prices=players.map((p,i)=>({player:p.player,avg:i<5?75-i*5:i<18?49-(i-5)*2:i<65?22-(i-18)*.3:i<110?5+(110-i)*.1:1,proj:i<5?77-i*5:i<18?51-(i-5)*2:i<65?24-(i-18)*.3:i<110?6+(110-i)*.1:1}));
+ const bins={one:0,twoToFive:0,sixToNineteen:0,twentyToFortyNine:0,fiftyPlus:0};
+ const spends=[],winners=[],highs=[];let nominatorWins=0,highOpenings=0,duplicates=0,overBudget=0;
+ for(let seed=1;seed<=100;seed++){
+  const scenario=["normal","normal","aggressive","conservative","mixed"][(seed-1)%5];
+  const run=runFullMock(players,prices,"h2h",seed,scenario);
+  duplicates+=run.log.length-new Set(run.log.map(x=>x.player)).size;
+  highs.push(Math.max(...run.log.map(x=>x.price)));
+  for(const sale of run.log){
+   if(sale.team===sale.nominator)nominatorWins++;
+   if(sale.opening>1)highOpenings++;
+   if(sale.price===1)bins.one++;
+   else if(sale.price<=5)bins.twoToFive++;
+   else if(sale.price<20)bins.sixToNineteen++;
+   else if(sale.price<50)bins.twentyToFortyNine++;
+   else bins.fiftyPlus++;
+  }
+  for(const team of run.teams){spends.push(team.spent);if(team.spent>200)overBudget++;}
+  winners.push(run.teams.find(x=>x.team===run.winner).spent);
+ }
+ const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
+ console.log("YAHOO_LIKE_100_REPORT "+JSON.stringify({auctions:100,picks:16800,bins,teamSpend:{min:Math.min(...spends),mean:mean(spends),max:Math.max(...spends)},winnerSpend:{min:Math.min(...winners),mean:mean(winners),max:Math.max(...winners)},highestSale:{min:Math.min(...highs),mean:mean(highs),max:Math.max(...highs)},nominatorWins,highOpenings,duplicates,overBudget}));
+ assert.equal(Object.values(bins).reduce((a,b)=>a+b,0),16800);
+ assert.equal(duplicates,0);assert.equal(overBudget,0);
+});
