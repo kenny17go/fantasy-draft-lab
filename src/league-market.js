@@ -2,15 +2,16 @@
 // Yahoo's 12x13 reference differs from this league's 14x12 format.
 const key=p=>String(p.player||"").trim().toLocaleLowerCase();
 export function buildLeagueMarket(prices=[]){
- const valid=prices.filter(p=>Number(p.avg)>0).sort((a,b)=>Number(b.avg)-Number(a.avg));
+ const valid=prices.map(p=>({...p,reference:Math.max(Number(p.avg)>0?Number(p.avg):0,Number(p.proj)>0?Number(p.proj):0)})).filter(p=>p.reference>0).sort((a,b)=>b.reference-a.reference);
  const ranks=new Map(valid.map((p,i)=>[key(p),i+1]));
- const avg=new Map(valid.map(p=>[key(p),Number(p.avg)]));
- return {ranks,avg};
+ const avg=new Map(valid.map(p=>[key(p),Number(p.avg)>0?Number(p.avg):0]));
+ const reference=new Map(valid.map(p=>[key(p),p.reference]));
+ return {ranks,avg,reference};
 }
 export function leagueTarget(player,reference,market){
- const yahooAvg=market.avg.get(key(player));
+ const yahooReference=market.reference.get(key(player));
  const rank=market.ranks.get(key(player));
- const base=Number(yahooAvg)>0?yahooAvg:Math.max(1,Number(reference)||1);
+ const base=Number(yahooReference)>0?yahooReference:Math.max(1,Number(reference)||1);
  let factor=1;
  if(rank<=5)factor=1.32;
  else if(rank<=15)factor=1.2;
@@ -21,8 +22,8 @@ export function leagueTarget(player,reference,market){
 }
 // An elite bargain is an invalid reference strategy, even when its nine-cat score is high.
 export function minimumLeagueBid(player,reference,market){
- const avg=market.avg.get(key(player));
- const base=Number(avg)>0?avg:Number(reference);
+ const yahooReference=market.reference.get(key(player));
+ const base=Number(yahooReference)>0?yahooReference:Number(reference);
  if(!(base>5))return 1;
  if(base>=50)return Math.ceil(base*1.1-1e-9);
  return Math.max(2,Math.ceil(base));
@@ -30,11 +31,11 @@ export function minimumLeagueBid(player,reference,market){
 export function priceReality(team,market){
  let checked=0,invalid=0,elite=0;
  for(const pick of team.players||[]){
-  const avg=market.avg.get(key(pick));
-  if(!(avg>5))continue;
+  const reference=market.reference.get(key(pick));
+  if(!(reference>5))continue;
   checked++;
   const rank=market.ranks.get(key(pick));
-  const minimum=minimumLeagueBid(pick,avg,market);
+  const minimum=minimumLeagueBid(pick,reference,market);
   if(Number(pick.price)<minimum){invalid++;if(rank<=5)elite++;}
  }
  return {checked,invalid,elite,credible:invalid===0};
