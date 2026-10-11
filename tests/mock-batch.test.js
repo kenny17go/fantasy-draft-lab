@@ -351,7 +351,22 @@ test("ROTO 9-slot ranked nomination spending and $180 target report",()=>{
 test("snake nomination sequence reverses at seats 14 and 1",()=>{
  const run=runFullMock(players,[],"h2h",3,"normal","normal","snake");
  const expected=[...Array.from({length:14},(_,i)=>i+1),...Array.from({length:14},(_,i)=>14-i),1,2];
- assert.deepEqual(run.log.slice(0,30).map(p=>p.nominator),expected);
+ assert.deepEqual(run.log.slice(0,14).map(p=>p.nominator),expected.slice(0,14));
+ // A completed roster is skipped; therefore later nominations need not match
+ // the raw seat sequence exactly. Validate that every nomination follows the
+ // snake sequence after skipping teams with full rosters.
+ const rosterCounts=Array(14).fill(0);
+ let turn=0;
+ for(const pick of run.log){
+  let seat;
+  do {
+   const phase=turn%28;
+   seat=phase<14?phase+1:28-phase;
+   turn++;
+  } while(rosterCounts[seat-1]===12);
+  assert.equal(pick.nominator,seat);
+  rosterCounts[pick.team-1]++;
+ }
  assert.equal(run.log.length,168);
 });
 test("compare snake and round-robin spending with matched seeds",()=>{
