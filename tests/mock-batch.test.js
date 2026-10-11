@@ -8,7 +8,7 @@ test("full mock evaluates 14 teams with legal budget and roster count",()=>{
  assert.equal(run.teams.length,14);
  assert.equal(run.log.length,CONFIG.roto.teams*CONFIG.roto.slots);
  assert.equal(run.teams.filter(t=>t.rank===1).length,1);
- for(const team of run.teams){assert.equal(team.players.length,CONFIG.roto.slots);assert.ok(team.spent>=12&&team.spent<=200);}
+ for(const team of run.teams){assert.equal(team.players.length,CONFIG.roto.slots);assert.ok(team.spent>=CONFIG.roto.slots&&team.spent<=200);}
 });
 test("seeded mock is reproducible",()=>{
  const a=runFullMock(players,[],"roto",19),b=runFullMock(players,[],"roto",19);
@@ -28,7 +28,7 @@ test("multiple H2H mock seeds finish without duplicate players or budget violati
   assert.equal(new Set(run.log.map(p=>p.player)).size,run.log.length);
   for(const t of run.teams){
    assert.equal(t.players.length,CONFIG.h2h.slots);
-   assert.ok(t.spent>=12&&t.spent<=200);
+   assert.ok(t.spent>=CONFIG.h2h.slots&&t.spent<=200);
    assert.ok(t.players.every(p=>p.price>=1));
   }
  }
@@ -43,7 +43,7 @@ test("100 complete H2H auctions satisfy every team budget and roster requirement
   assert.equal(new Set(run.log.map(p=>p.player)).size,168);
   for(const team of run.teams){
    assert.equal(team.players.length,12,`run ${i+1}, team ${team.team}`);
-   assert.ok(team.spent>=12&&team.spent<=200,`run ${i+1}, team ${team.team}: $${team.spent}`);
+   assert.ok(team.spent>=CONFIG.roto.slots&&team.spent<=200,`run ${i+1}, team ${team.team}: $${team.spent}`);
   }
  }
 });
@@ -55,7 +55,7 @@ test("Yahoo-priced full auctions respect legal minimum and team budgets",()=>{
   for(const seed of [1,7,19]){
    const run=runFullMock(players,prices,mode,seed);
    assert.equal(run.log.length,CONFIG[mode].teams*CONFIG[mode].slots);
-   for(const team of run.teams)assert.ok(team.spent>=12&&team.spent<=200,`${mode} seed ${seed}, team ${team.team}: ${team.spent}`);
+   for(const team of run.teams)assert.ok(team.spent>=CONFIG[mode].slots&&team.spent<=200,`${mode} seed ${seed}, team ${team.team}: ${team.spent}`);
    assert.ok(run.log.every(p=>p.price>=1),"every winning bid must be at least $1");
   }
  }
@@ -74,6 +74,6 @@ test("missing and near-zero Yahoo price rows never remove projection players",()
   assert.equal(new Set(run.log.map(p=>p.player)).size,168);
   assert.ok(run.log.every(p=>p.price>=1));
   assert.ok(run.log.some(p=>!mixed.some(y=>y.player===p.player)),"players with no Yahoo row must remain draftable");
-  assert.ok(run.teams.every(t=>t.players.length===12&&t.spent>=12&&t.spent<=200));
+  assert.ok(run.teams.every(t=>t.players.length===12&&t.spent>=CONFIG.h2h.slots&&t.spent<=200));
  }
 });
