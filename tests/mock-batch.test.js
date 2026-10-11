@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {runFullMock,runMockBatch} from "../src/mock-batch.js";
 import {CONFIG} from "../src/model.js";
+import {rankProjections} from "../src/projections.js";
 const players=Array.from({length:210},(_,i)=>({player:"Synthetic "+i,positions:["PG","SG","SF","PF","C"],gp:70,pts:30-i*.08,reb:7,ast:5,stl:1.2,blk:.8,three:2,tov:2,fgm:8,fga:16,ftm:4,fta:5}));
 test("full mock evaluates 14 teams with legal budget and roster count",()=>{
  const run=runFullMock(players,[],"roto",17);
@@ -305,4 +306,21 @@ test("report every-team 180 dollar spending target across paired auction modes",
  }
  console.log("TEAM_SPEND_180_TARGET_REPORT "+JSON.stringify(report));
  assert.equal(report.normal.teams,420);
+});
+
+test("nominations rotate through teams 1 to 14 independent of auction winners",()=>{
+ const run=runFullMock(players,[],"h2h",3);
+ assert.deepEqual(run.log.slice(0,14).map(p=>p.nominator),Array.from({length:14},(_,i)=>i+1));
+ assert.equal(run.log[14].nominator,1);
+ const counts=Array(14).fill(0);
+ for(const sale of run.log){
+  assert.ok(sale.nominator>=1&&sale.nominator<=14);
+  counts[sale.team-1]++;
+ }
+ assert.ok(counts.every(n=>n===12));
+});
+test("nominations follow projection ranking when all players are eligible and affordable",()=>{
+ const ranked=rankProjections(players);
+ const run=runFullMock(players,[],"h2h",5);
+ assert.deepEqual(run.log.map(x=>x.player),ranked.slice(0,168).map(x=>x.player));
 });
