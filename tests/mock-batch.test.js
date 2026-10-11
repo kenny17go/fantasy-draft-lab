@@ -256,3 +256,32 @@ test("budget-aware bidding preserves legal auctions and reports paired outcomes"
  }
  console.log("BUDGET_AWARE_30_REPORT "+JSON.stringify(report));
 });
+
+test("100 paired Yahoo-like auctions compare normal and budget-aware market outcomes",()=>{
+ const prices=players.map((p,i)=>({player:p.player,avg:i<5?75-i*5:i<18?49-(i-5)*2:i<65?22-(i-18)*.3:i<110?5+(110-i)*.1:1,proj:i<5?77-i*5:i<18?51-(i-5)*2:i<65?24-(i-18)*.3:i<110?6+(110-i)*.1:1}));
+ const report={};
+ for(const biddingMode of ["normal","budget-aware"]){
+  const spends=[],winners=[],last30=[];let below100=0,at200=0,duplicateCount=0,overBudgetCount=0;
+  const bins={one:0,twoToFive:0,sixToNineteen:0,twentyToFortyNine:0,fiftyPlus:0};
+  for(let seed=1;seed<=100;seed++){
+   const scenario=["normal","normal","aggressive","conservative","mixed"][(seed-1)%5];
+   const run=runFullMock(players,prices,"h2h",seed,scenario,biddingMode);
+   duplicateCount+=run.log.length-new Set(run.log.map(x=>x.player)).size;
+   last30.push(...run.log.slice(-30).map(x=>x.price));
+   for(const p of run.log){
+    if(p.price===1)bins.one++;
+    else if(p.price<=5)bins.twoToFive++;
+    else if(p.price<20)bins.sixToNineteen++;
+    else if(p.price<50)bins.twentyToFortyNine++;
+    else bins.fiftyPlus++;
+   }
+   for(const t of run.teams){spends.push(t.spent);below100+=Number(t.spent<100);at200+=Number(t.spent===200);overBudgetCount+=Number(t.spent>200);}
+   winners.push(run.teams.find(t=>t.team===run.winner).spent);
+  }
+  const mean=a=>a.reduce((s,v)=>s+v,0)/a.length;
+  report[biddingMode]={auctions:100,teamSpendMean:mean(spends),winnerSpendMean:mean(winners),last30MeanPrice:mean(last30),below100,at200,bins,duplicateCount,overBudgetCount};
+  assert.equal(Object.values(bins).reduce((s,v)=>s+v,0),16800);
+  assert.equal(duplicateCount,0);assert.equal(overBudgetCount,0);
+ }
+ console.log("BUDGET_AWARE_100_REPORT "+JSON.stringify(report));
+});
