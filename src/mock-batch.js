@@ -25,12 +25,12 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    const discretionary=Math.max(0,stats.remaining-stats.open);
    const perOpen=stats.open>0?discretionary/stats.open:0;
    const base=biddingMode==="budget-aware"||biddingMode==="spend-target"?1+Math.min(.25,Math.max(0,perOpen-12)/40)*Math.max(0,(progress-.25)/.75):1;
-   // Optional $180 goal: respond to spending shortfall while preserving player valuations.
+   // Optional $200 goal: respond to spending shortfall while preserving player valuations.
    // Only increase willingness modestly for teams with remaining discretionary cash.
    const spent=cfg.budget-stats.remaining;
-   const desired=180*rosters[team-1].length/cfg.slots;
+   const desired=cfg.budget*rosters[team-1].length/cfg.slots;
    const shortfall=Math.max(0,desired-spent);
-   const goalBoost=biddingMode==="spend-target"?1+Math.min(.2,shortfall/Math.max(1,180)*.6):1;
+   const goalBoost=biddingMode==="spend-target"?1+Math.min(.2,shortfall/Math.max(1,cfg.budget)*.6):1;
    return [team,base*goalBoost];
   }));
   // Nomination belongs to a real team, rotating past completed rosters.
