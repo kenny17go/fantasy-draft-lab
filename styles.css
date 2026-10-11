@@ -96,3 +96,34 @@ main>section.panel[hidden]{display:none!important}
  #player-detail .detail-grid{gap:8px}
  #player-detail .detail-grid .metric{padding:10px 8px}
 }
+
+/* Inline player statistics: no full-screen overlay, no dimming or empty backdrop. */
+.ranking-table .inline-player-detail>td,
+.ranking-table .inline-player-detail>td:first-child{
+ position:sticky;
+ left:0;
+ z-index:4;
+ display:table-cell;
+ width:auto;
+ min-width:0;
+ max-width:none;
+ padding:10px 8px 14px;
+ white-space:normal;
+ background:#142238;
+ box-shadow:none;
+ border-bottom:1px solid #48607c;
+}
+.inline-player-card{
+ width:min(650px,calc(100vw - 68px));
+ max-width:100%;
+ padding:12px;
+ background:#0e1a2d;
+ border:1px solid #344b68;
+ border-radius:12px;
+}
+.inline-player-header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px}
+.inline-player-header h3{margin:0;font-size:1rem;white-space:normal;overflow-wrap:anywhere}
+.inline-detail-close{width:auto;flex:0 0 auto;margin:0;padding:7px 10px}
+.inline-player-card .detail-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.inline-player-card .detail-grid .metric{padding:9px 7px;min-width:0}
+.inline-player-card .detail-grid .metric b{font-size:clamp(.8rem,3vw,1.08rem);overflow-wrap:anywhere}
