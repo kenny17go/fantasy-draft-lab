@@ -9,7 +9,7 @@ function rng(seed){let s=seed>>>0;return ()=>((s=(Math.imul(s,1664525)+101390422
 export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal",biddingMode="normal"){
  const cfg=CONFIG[mode];if(!cfg)throw Error("未知模式");
  if(players.length<cfg.teams*cfg.slots)throw Error("預測球員不足");
- if(!["normal","forced-first-raise"].includes(biddingMode))throw Error("未知競標模式");
+ if(!["normal","forced-first-raise","budget-aware"].includes(biddingMode))throw Error("未知競標模式");
  const random=rng(seed),ranked=rankProjections(players),yahoo=new Map(prices.map(p=>[key(p),p])),league=buildLeagueMarket(prices);
  const rosters=Array.from({length:cfg.teams},()=>[]),styles=rosters.map(()=>.85+random()*.3);
  let state=fresh(mode),log=[];
@@ -38,7 +38,15 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
     // Willingness to pay is player-specific; never force it toward cash per slot.
     // Teams differ in valuation, and competition sets the clearing price.
     const categoryNeed=1+Math.min(.22,rosters[team-1].length*.012);
-    const willingness=Math.max(1,Math.round(target*factor*categoryNeed));
+    // Budget-aware experiment: modestly increase willingness late in a draft
+    // when a team has spare discretionary cash. Never bid simply to exhaust cash.
+    const progress=state.picks.length/(cfg.teams*cfg.slots);
+    const discretionary=Math.max(0,stats.remaining-stats.open);
+    const perOpen=stats.open>0?discretionary/stats.open:0;
+    const budgetFactor=biddingMode==="budget-aware"
+      ?1+Math.min(.25,Math.max(0,perOpen-12)/40)*Math.max(0,(progress-.25)/.75)
+      :1;
+    const willingness=Math.max(1,Math.round(target*factor*categoryNeed*budgetFactor));
     return {team,bid:Math.max(1,Math.min(stats.maxBid,willingness))};
    }).sort((a,b)=>b.bid-a.bid||a.team-b.team);
    const affordable=bids.filter(b=>b.bid>=1);
