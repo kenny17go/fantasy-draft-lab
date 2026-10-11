@@ -324,3 +324,26 @@ test("nominations follow projection ranking when all players are eligible and af
  const run=runFullMock(players,[],"h2h",5);
  assert.deepEqual(run.log.map(x=>x.player),ranked.slice(0,168).map(x=>x.player));
 });
+
+test("ROTO 9-slot ranked nomination spending and $180 target report",()=>{
+ const prices=players.map((p,i)=>({player:p.player,avg:i<5?75-i*5:i<18?49-(i-5)*2:i<65?22-(i-18)*.3:i<110?5+(110-i)*.1:1,proj:i<5?77-i*5:i<18?51-(i-5)*2:i<65?24-(i-18)*.3:i<110?6+(110-i)*.1:1}));
+ const report={};
+ for(const biddingMode of ["normal","budget-aware"]){
+  let spent=0,below180=0,minimum=200,allTeams180=0,duplicates=0,overBudget=0;
+  const rounds=20;
+  for(let seed=1;seed<=rounds;seed++){
+   const run=runFullMock(players,prices,"roto",seed,["normal","normal","aggressive","conservative","mixed"][(seed-1)%5],biddingMode);
+   assert.equal(run.log.length,126);
+   duplicates+=run.log.length-new Set(run.log.map(p=>p.player)).size;
+   if(run.teams.every(t=>t.spent>=180))allTeams180++;
+   for(const team of run.teams){
+    assert.equal(team.players.length,9);
+    spent+=team.spent;minimum=Math.min(minimum,team.spent);
+    below180+=Number(team.spent<180);overBudget+=Number(team.spent>200);
+   }
+  }
+  report[biddingMode]={auctions:rounds,teams:rounds*14,meanSpend:spent/(rounds*14),minimum,below180,allTeams180,duplicates,overBudget};
+  assert.equal(duplicates,0);assert.equal(overBudget,0);
+ }
+ console.log("ROTO_180_TARGET_REPORT "+JSON.stringify(report));
+});
