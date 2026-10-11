@@ -57,3 +57,13 @@ test("higher of Yahoo Avg and Proj governs floor and price credibility",()=>{
  assert.equal(priceReality({players:[{player:"Proj Higher",price:25}]},m).credible,true);
  assert.equal(priceReality({players:[{player:"Proj Elite",price:76}]},m).credible,false);
 });
+
+test("zero Yahoo prices remain low-price references, not missing players",()=>{
+ const m=buildLeagueMarket([{player:"Zero",avg:0,proj:0},{player:"Fractional",avg:0.2,proj:0.8},{player:"Projection Only",avg:null,proj:3}]);
+ assert.equal(m.reference.has("zero"),false);
+ assert.equal(m.reference.get("fractional"),0.8);
+ assert.equal(m.reference.get("projection only"),3);
+ assert.equal(minimumLeagueBid({player:"Zero"},1,m),1);
+ assert.equal(minimumLeagueBid({player:"Fractional"},0.8,m),1);
+ assert.equal(minimumLeagueBid({player:"Projection Only"},3,m),1);
+});

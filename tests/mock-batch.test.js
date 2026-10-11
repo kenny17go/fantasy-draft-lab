@@ -64,3 +64,20 @@ test("Yahoo-priced full auctions honor high-value premium and team budgets",()=>
   }
  }
 });
+
+test("missing and near-zero Yahoo price rows never remove projection players",()=>{
+ const mixed=players.map((p,i)=>{
+  if(i%4===0)return null;
+  if(i%4===1)return {player:p.player,avg:0,proj:0};
+  if(i%4===2)return {player:p.player,avg:0.2,proj:0.8};
+  return {player:p.player,avg:null,proj:3};
+ }).filter(Boolean);
+ for(const seed of [1,7]){
+  const run=runFullMock(players,mixed,"h2h",seed);
+  assert.equal(run.log.length,168);
+  assert.equal(new Set(run.log.map(p=>p.player)).size,168);
+  assert.ok(run.log.every(p=>p.price>=1));
+  assert.ok(run.log.some(p=>!mixed.some(y=>y.player===p.player)),"players with no Yahoo row must remain draftable");
+  assert.ok(run.teams.every(t=>t.players.length===12&&t.spent>=190&&t.spent<=200));
+ }
+});
