@@ -6,13 +6,13 @@ import {evaluateDraft} from "./evaluation.js";
 const key=p=>p.player.trim().toLowerCase();
 const cats=["fgPct","ftPct","three","pts","reb","ast","stl","blk","tov"];
 function rng(seed){let s=seed>>>0;return ()=>((s=(Math.imul(s,1664525)+1013904223)>>>0)/4294967296);}
-export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal",biddingMode="normal"){
+export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal",biddingMode="normal",nominationOrder="round-robin"){
  const cfg=CONFIG[mode];if(!cfg)throw Error("未知模式");
  if(players.length<cfg.teams*cfg.slots)throw Error("預測球員不足");
  if(!["normal","forced-first-raise","budget-aware"].includes(biddingMode))throw Error("未知競標模式");
  const random=rng(seed),ranked=rankProjections(players),yahoo=new Map(prices.map(p=>[key(p),p])),league=buildLeagueMarket(prices);
  const rosters=Array.from({length:cfg.teams},()=>[]),styles=rosters.map(()=>.85+random()*.3);
- let state=fresh(mode),log=[],nominationSeat=1;
+ let state=fresh(mode),log=[],nominationTurn=0;
  while(state.picks.length<cfg.teams*cfg.slots){
   const taken=new Set(state.picks.map(p=>p.player.toLowerCase()));
   const available=ranked.filter(p=>!taken.has(key(p)));
