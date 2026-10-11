@@ -153,14 +153,27 @@ $("import-all").addEventListener("change",async e=>{const file=e.target.files[0]
  try{localStorage.setItem(key("h2h"),JSON.stringify(data.h2h));localStorage.setItem(key("roto"),JSON.stringify(data.roto));localStorage.setItem(projectionsKey,JSON.stringify(data.players));localStorage.setItem(fullBackupKey,JSON.stringify(data.prices));}catch(err){for(const [k,v] of before){if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v);}throw err;}
  state=load(mode);projectionPlayers=data.players;render();feedback("完整還原成功："+data.players.length+" 位預測球員、"+data.prices.length+" 筆價格，H2H 與 ROTO 紀錄均已還原。");
  }catch(err){feedback("完整還原失敗："+err.message);}finally{e.target.value="";}});
-function showPlayerDetail(player){
- const p=projectionPlayers.find(x=>x.player===player);if(!p)return;
- const details=$("player-detail");details.replaceChildren();const dialog=document.createElement("div");dialog.className="player-detail-card";dialog.setAttribute("role","document");details.append(dialog);const close=document.createElement("button");close.type="button";close.className="detail-close";close.textContent="關閉 ×";close.addEventListener("click",()=>{details.hidden=true;});dialog.append(close);const title=document.createElement("h3");title.textContent=p.player+" · "+p.positions.join("/")+" · GP "+p.gp;dialog.append(title);
+function showPlayerDetail(player,row){
+ const existing=document.querySelector(".inline-player-detail");
+ if(existing){
+  const same=existing.dataset.player===player;
+  existing.remove();
+  if(same)return;
+ }
+ const p=projectionPlayers.find(x=>x.player===player);if(!p||!row)return;
+ const detailRow=document.createElement("tr");detailRow.className="inline-player-detail";detailRow.dataset.player=player;
+ const td=document.createElement("td");td.colSpan=row.children.length;
+ const card=document.createElement("div");card.className="inline-player-card";
+ const header=document.createElement("div");header.className="inline-player-header";
+ const title=document.createElement("h3");title.textContent=p.player+" · "+p.positions.join("/")+" · GP "+p.gp;
+ const close=document.createElement("button");close.type="button";close.className="secondary inline-detail-close";close.textContent="收合 ×";close.addEventListener("click",()=>detailRow.remove());
+ header.append(title,close);card.append(header);
  const grid=document.createElement("div");grid.className="detail-grid";
  const fields=[["FG%",p.fga?(100*p.fgm/p.fga).toFixed(1)+"%":"—"],["FT%",p.fta?(100*p.ftm/p.fta).toFixed(1)+"%":"—"],["3PM",p.three.toFixed(2)],["PTS",p.pts.toFixed(2)],["REB",p.reb.toFixed(2)],["AST",p.ast.toFixed(2)],["STL",p.stl.toFixed(2)],["BLK",p.blk.toFixed(2)],["TO",p.tov.toFixed(2)],["FGM/FGA",p.fgm.toFixed(2)+"/"+p.fga.toFixed(2)],["FTM/FTA",p.ftm.toFixed(2)+"/"+p.fta.toFixed(2)]];
- for(const [label,value] of fields){const item=document.createElement("div");item.className="metric";const small=document.createElement("span"),strong=document.createElement("b");small.textContent=label;strong.textContent=value;item.append(small,strong);grid.append(item);}dialog.append(grid);details.hidden=false;details.scrollTop=0;close.focus();
+ for(const [label,value] of fields){const item=document.createElement("div");item.className="metric";const small=document.createElement("span"),strong=document.createElement("b");small.textContent=label;strong.textContent=value;item.append(small,strong);grid.append(item);}
+ card.append(grid);td.append(card);detailRow.append(td);row.after(detailRow);
 }
-$("ranking-groups").addEventListener("click",e=>{const tr=e.target.closest("tbody tr");if(tr?.dataset.player)showPlayerDetail(tr.dataset.player);});
+$("ranking-groups").addEventListener("click",e=>{const tr=e.target.closest("tbody tr[data-player]");if(tr&&!tr.classList.contains("inline-player-detail"))showPlayerDetail(tr.dataset.player,tr);});
 
 $("yahoo-prices-import").addEventListener("click",()=>{try{
  const incoming=parseYahooPrices($("yahoo-prices-paste").value);
@@ -174,9 +187,7 @@ $("yahoo-prices-import").addEventListener("click",()=>{try{
 // Compact category sort buttons, without a duplicate dropdown.
 document.querySelectorAll("[data-sort-category]").forEach(button=>button.addEventListener("click",()=>{const column=button.dataset.sortCategory;rankingSort={column,ascending:rankingSort.column===column?!rankingSort.ascending:column==="tov"};if(projectionPlayers.length)displayRankings(projectionPlayers);}));
 
-// Dismiss the detail overlay without scrolling through 200 rows.
-document.getElementById("player-detail").addEventListener("click",e=>{if(e.target.id==="player-detail")e.currentTarget.hidden=true;});
-document.addEventListener("keydown",e=>{if(e.key==="Escape")document.getElementById("player-detail").hidden=true;});
+// Inline detail is dismissed by its close button or by tapping the same player again.
 
 // Persist column preferences locally; do not change projection or pricing data.
 document.querySelectorAll("[data-ranking-field]").forEach(cb=>cb.addEventListener("change",()=>{visibleRankingFields=rankingFields.map(x=>x[0]).filter(k=>document.querySelector('[data-ranking-field="'+k+'"]').checked);localStorage.setItem(rankingFieldKey,JSON.stringify(visibleRankingFields));if(projectionPlayers.length)displayRankings(projectionPlayers);}));
