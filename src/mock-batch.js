@@ -9,7 +9,7 @@ function rng(seed){let s=seed>>>0;return ()=>((s=(Math.imul(s,1664525)+101390422
 export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal",biddingMode="normal",nominationOrder="round-robin"){
  const cfg=CONFIG[mode];if(!cfg)throw Error("未知模式");
  if(players.length<cfg.teams*cfg.slots)throw Error("預測球員不足");
- if(!["normal","forced-first-raise","budget-aware"].includes(biddingMode))throw Error("未知競標模式");
+ if(!["normal","forced-first-raise","budget-aware","spend-target"].includes(biddingMode))throw Error("未知競標模式");
  const random=rng(seed),ranked=rankProjections(players),yahoo=new Map(prices.map(p=>[key(p),p])),league=buildLeagueMarket(prices);
  const rosters=Array.from({length:cfg.teams},()=>[]),styles=rosters.map(()=>.85+random()*.3);
  let state=fresh(mode),log=[],nominationTurn=0;
@@ -24,7 +24,14 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
   const budgetFactors=new Map(open.map(({team,stats})=>{
    const discretionary=Math.max(0,stats.remaining-stats.open);
    const perOpen=stats.open>0?discretionary/stats.open:0;
-   return [team,biddingMode==="budget-aware"?1+Math.min(.25,Math.max(0,perOpen-12)/40)*Math.max(0,(progress-.25)/.75):1];
+   const base=biddingMode==="budget-aware"||biddingMode==="spend-target"?1+Math.min(.25,Math.max(0,perOpen-12)/40)*Math.max(0,(progress-.25)/.75):1;
+   // Optional $180 goal: respond to spending shortfall while preserving player valuations.
+   // Only increase willingness modestly for teams with remaining discretionary cash.
+   const spent=cfg.budget-stats.remaining;
+   const desired=180*rosters[team-1].length/cfg.slots;
+   const shortfall=Math.max(0,desired-spent);
+   const goalBoost=biddingMode==="spend-target"?1+Math.min(.2,shortfall/Math.max(1,180)*.6):1;
+   return [team,base*goalBoost];
   }));
   // Nomination belongs to a real team, rotating past completed rosters.
   let nominator;
