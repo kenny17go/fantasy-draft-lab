@@ -155,10 +155,10 @@ $("import-all").addEventListener("change",async e=>{const file=e.target.files[0]
  }catch(err){feedback("完整還原失敗："+err.message);}finally{e.target.value="";}});
 function showPlayerDetail(player){
  const p=projectionPlayers.find(x=>x.player===player);if(!p)return;
- const details=$("player-detail");details.replaceChildren();const close=document.createElement("button");close.type="button";close.className="detail-close";close.textContent="關閉 ×";close.addEventListener("click",()=>{details.hidden=true;});details.append(close);const title=document.createElement("h3");title.textContent=p.player+" · "+p.positions.join("/")+" · GP "+p.gp;details.append(title);
+ const details=$("player-detail");details.replaceChildren();const dialog=document.createElement("div");dialog.className="player-detail-card";dialog.setAttribute("role","document");details.append(dialog);const close=document.createElement("button");close.type="button";close.className="detail-close";close.textContent="關閉 ×";close.addEventListener("click",()=>{details.hidden=true;});dialog.append(close);const title=document.createElement("h3");title.textContent=p.player+" · "+p.positions.join("/")+" · GP "+p.gp;dialog.append(title);
  const grid=document.createElement("div");grid.className="detail-grid";
  const fields=[["FG%",p.fga?(100*p.fgm/p.fga).toFixed(1)+"%":"—"],["FT%",p.fta?(100*p.ftm/p.fta).toFixed(1)+"%":"—"],["3PM",p.three.toFixed(2)],["PTS",p.pts.toFixed(2)],["REB",p.reb.toFixed(2)],["AST",p.ast.toFixed(2)],["STL",p.stl.toFixed(2)],["BLK",p.blk.toFixed(2)],["TO",p.tov.toFixed(2)],["FGM/FGA",p.fgm.toFixed(2)+"/"+p.fga.toFixed(2)],["FTM/FTA",p.ftm.toFixed(2)+"/"+p.fta.toFixed(2)]];
- for(const [label,value] of fields){const item=document.createElement("div");item.className="metric";const small=document.createElement("span"),strong=document.createElement("b");small.textContent=label;strong.textContent=value;item.append(small,strong);grid.append(item);}details.append(grid);details.hidden=false;details.scrollTop=0;close.focus();
+ for(const [label,value] of fields){const item=document.createElement("div");item.className="metric";const small=document.createElement("span"),strong=document.createElement("b");small.textContent=label;strong.textContent=value;item.append(small,strong);grid.append(item);}dialog.append(grid);details.hidden=false;details.scrollTop=0;close.focus();
 }
 $("ranking-groups").addEventListener("click",e=>{const tr=e.target.closest("tbody tr");if(tr?.dataset.player)showPlayerDetail(tr.dataset.player);});
 
