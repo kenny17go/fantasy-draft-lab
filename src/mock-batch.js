@@ -6,9 +6,10 @@ import {evaluateDraft} from "./evaluation.js";
 const key=p=>p.player.trim().toLowerCase();
 const cats=["fgPct","ftPct","three","pts","reb","ast","stl","blk","tov"];
 function rng(seed){let s=seed>>>0;return ()=>((s=(Math.imul(s,1664525)+1013904223)>>>0)/4294967296);}
-export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal"){
+export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal",biddingMode="normal"){
  const cfg=CONFIG[mode];if(!cfg)throw Error("未知模式");
  if(players.length<cfg.teams*cfg.slots)throw Error("預測球員不足");
+ if(!["normal","forced-first-raise"].includes(biddingMode))throw Error("未知競標模式");
  const random=rng(seed),ranked=rankProjections(players),yahoo=new Map(prices.map(p=>[key(p),p])),league=buildLeagueMarket(prices);
  const rosters=Array.from({length:cfg.teams},()=>[]),styles=rosters.map(()=>.85+random()*.3);
  let state=fresh(mode),log=[];
@@ -45,6 +46,13 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    // The nominator commits to the opening bid. Other teams may outbid only
    // if their own valuation and remaining legal budget permit it.
    const challengers=affordable.filter(b=>b.team!==nominator.team&&b.bid>opening);
+   const forcedEligible=eligible.filter(x=>x.team!==nominator.team&&x.stats.maxBid>=opening+1);
+   // Optional stress-test: at least one other legal team must raise once,
+   // even when its normal valuation is below the opening price.
+   if(biddingMode==="forced-first-raise"&&challengers.length===0&&forcedEligible.length){
+    const challenger=forcedEligible[Math.floor(random()*forcedEligible.length)];
+    challengers.push({team:challenger.team,bid:opening+1});
+   }
    challengers.sort((a,b)=>b.bid-a.bid||a.team-b.team);
    let winner=nominator.team,clearing=opening;
    if(challengers.length){
@@ -64,7 +72,7 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
   const price=chosen.bid;
   state=addPick(state,{player:chosen.p.player,team:chosen.team,price});
   rosters[chosen.team-1].push(chosen.p);
-  log.push({player:chosen.p.player,team:chosen.team,nominator:chosen.nominator,opening:chosen.opening,price,reference:chosen.reference});
+  log.push({player:chosen.p.player,team:chosen.team,nominator:chosen.nominator,opening:chosen.opening,price,biddingMode,reference:chosen.reference});
  }
  const teams=rosters.map((roster,i)=>{
   const picks=state.picks.filter(p=>p.team===i+1);
@@ -80,10 +88,10 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
  teams.forEach(t=>{t.rank=order.get(t.team).rank;t.score=order.get(t.team).score;});
  return {seed,scenario,mode,teams,log,winner:evaluation.standings[0].team,metric:evaluation.metric};
 }
-export function runMockBatch(players,prices=[],mode="h2h",count=100){
+export function runMockBatch(players,prices=[],mode="h2h",count=100,biddingMode="normal"){
  if(!Number.isInteger(count)||count<1||count>100)throw Error("模擬次數須為 1–100");
  const scenarios=["normal","normal","aggressive","conservative","mixed"];
- const results=Array.from({length:count},(_,i)=>runFullMock(players,prices,mode,i+1,scenarios[i%scenarios.length]));
+ const results=Array.from({length:count},(_,i)=>runFullMock(players,prices,mode,i+1,scenarios[i%scenarios.length],biddingMode));
  const all=results.flatMap((r,i)=>r.teams.map(t=>({...t,run:i+1,scenario:r.scenario})));
  const stats=Object.fromEntries(cats.map(cat=>{
   const v=all.map(t=>t.stats[cat]).filter(Number.isFinite),mean=v.reduce((a,b)=>a+b,0)/v.length;
