@@ -77,3 +77,43 @@ test("missing and near-zero Yahoo price rows never remove projection players",()
   assert.ok(run.teams.every(t=>t.players.length===12&&t.spent>=CONFIG.h2h.slots&&t.spent<=200));
  }
 });
+
+
+test("100 H2H auctions report clearing-price and budget distributions without assuming a desired result",()=>{
+ const bins={one:0,twoToFive:0,sixToNineteen:0,twentyToFortyNine:0,fiftyPlus:0};
+ const spends=[],winnerSpends=[],prices=[],topPriceByRun=[];
+ let duplicateCount=0,overBudgetCount=0,uniformWinnerCount=0;
+ for(let seed=1;seed<=100;seed++){
+  const scenario=["normal","normal","aggressive","conservative","mixed"][(seed-1)%5];
+  const run=runFullMock(players,[], "h2h",seed,scenario);
+  const names=run.log.map(p=>p.player);
+  duplicateCount+=names.length-new Set(names).size;
+  topPriceByRun.push(Math.max(...run.log.map(p=>p.price)));
+  for(const p of run.log){
+   prices.push(p.price);
+   if(p.price===1)bins.one++;
+   else if(p.price<=5)bins.twoToFive++;
+   else if(p.price<20)bins.sixToNineteen++;
+   else if(p.price<50)bins.twentyToFortyNine++;
+   else bins.fiftyPlus++;
+  }
+  for(const t of run.teams){
+   spends.push(t.spent);
+   if(t.spent>200)overBudgetCount++;
+  }
+  const winner=run.teams.find(t=>t.team===run.winner);
+  assert.ok(winner,"each run has a winning team");
+  winnerSpends.push(winner.spent);
+  if(new Set(winner.players.map(p=>p.price)).size<=2)uniformWinnerCount++;
+ }
+ const sorted=[...prices].sort((a,b)=>a-b);
+ const percentile=p=>sorted[Math.floor((sorted.length-1)*p)];
+ const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
+ const report={auctions:100,picks:prices.length,bins,price:{min:sorted[0],p25:percentile(.25),median:percentile(.5),p75:percentile(.75),p95:percentile(.95),max:sorted.at(-1)},teamSpend:{min:Math.min(...spends),mean:avg(spends),max:Math.max(...spends)},winnerSpend:{min:Math.min(...winnerSpends),mean:avg(winnerSpends),max:Math.max(...winnerSpends)},highestSale:{min:Math.min(...topPriceByRun),mean:avg(topPriceByRun),max:Math.max(...topPriceByRun)},uniformWinnerCount,duplicateCount,overBudgetCount};
+ console.log("MOCK_AUCTION_100_REPORT "+JSON.stringify(report));
+ assert.equal(prices.length,16800);
+ assert.equal(duplicateCount,0);
+ assert.equal(overBudgetCount,0);
+ assert.equal(Object.values(bins).reduce((a,b)=>a+b,0),16800);
+ assert.ok(spends.every(n=>n>=12&&n<=200));
+});
