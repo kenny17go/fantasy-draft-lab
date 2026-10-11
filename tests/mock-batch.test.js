@@ -171,3 +171,35 @@ test("100 Yahoo-like priced H2H auctions report spending and nomination behavior
  assert.equal(Object.values(bins).reduce((a,b)=>a+b,0),16800);
  assert.equal(duplicates,0);assert.equal(overBudget,0);
 });
+
+test("forced first raise mode guarantees a legal challenger when available",()=>{
+ const prices=players.map((p,i)=>({player:p.player,avg:i<25?55-i:8,proj:i<25?60-i:9}));
+ for(const mode of ["h2h","roto"]){
+  const run=runFullMock(players,prices,mode,13,"normal","forced-first-raise");
+  const spent=Array(14).fill(0),count=Array(14).fill(0);
+  for(const sale of run.log){
+   const eligible=Array.from({length:14},(_,i)=>i+1).filter(team=>team!==sale.nominator&&count[team-1]<CONFIG[mode].slots&&200-spent[team-1]-(CONFIG[mode].slots-count[team-1]-1)>=sale.opening+1);
+   // Roster position eligibility is universal in this synthetic fixture.
+   if(eligible.length)assert.ok(sale.price>=sale.opening+1,"a legal challenger must raise");
+   else assert.equal(sale.team,sale.nominator,"without a challenger, nominator wins");
+   assert.ok(sale.price>=sale.opening);
+   spent[sale.team-1]+=sale.price;count[sale.team-1]++;
+  }
+  assert.ok(spent.every(v=>v<=200));assert.ok(count.every(v=>v===CONFIG[mode].slots));
+ }
+});
+test("100 Yahoo-like forced-first-raise auctions report comparison metrics",()=>{
+ const prices=players.map((p,i)=>({player:p.player,avg:i<5?75-i*5:i<18?49-(i-5)*2:i<65?22-(i-18)*.3:i<110?5+(110-i)*.1:1,proj:i<5?77-i*5:i<18?51-(i-5)*2:i<65?24-(i-18)*.3:i<110?6+(110-i)*.1:1}));
+ const spends=[],winnerSpends=[],pricesPaid=[];let nominatorWins=0,overBudget=0,duplicates=0;
+ for(let seed=1;seed<=100;seed++){
+  const scenario=["normal","normal","aggressive","conservative","mixed"][(seed-1)%5];
+  const run=runFullMock(players,prices,"h2h",seed,scenario,"forced-first-raise");
+  duplicates+=168-new Set(run.log.map(x=>x.player)).size;
+  for(const p of run.log){pricesPaid.push(p.price);if(p.team===p.nominator)nominatorWins++;}
+  for(const t of run.teams){spends.push(t.spent);if(t.spent>200)overBudget++;}
+  winnerSpends.push(run.teams.find(t=>t.team===run.winner).spent);
+ }
+ const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
+ console.log("FORCED_RAISE_100_REPORT "+JSON.stringify({auctions:100,picks:pricesPaid.length,teamSpend:{min:Math.min(...spends),mean:mean(spends),max:Math.max(...spends)},winnerSpend:{min:Math.min(...winnerSpends),mean:mean(winnerSpends),max:Math.max(...winnerSpends)},oneDollarSales:pricesPaid.filter(x=>x===1).length,twentyPlus:pricesPaid.filter(x=>x>=20).length,fiftyPlus:pricesPaid.filter(x=>x>=50).length,maxSale:Math.max(...pricesPaid),nominatorWins,duplicates,overBudget}));
+ assert.equal(pricesPaid.length,16800);assert.equal(duplicates,0);assert.equal(overBudget,0);
+});
