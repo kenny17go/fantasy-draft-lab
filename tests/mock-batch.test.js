@@ -232,3 +232,27 @@ test("paired auction diagnostics locate when bidding power disappears",()=>{
  assert.equal(report.normal.stages.length,3);
  assert.equal(report["forced-first-raise"].stages.length,3);
 });
+
+test("budget-aware bidding preserves legal auctions and reports paired outcomes",()=>{
+ const prices=players.map((p,i)=>({player:p.player,avg:i<5?75-i*5:i<18?49-(i-5)*2:i<65?22-(i-18)*.3:i<110?5+(110-i)*.1:1,proj:i<5?77-i*5:i<18?51-(i-5)*2:i<65?24-(i-18)*.3:i<110?6+(110-i)*.1:1}));
+ const report={};
+ for(const biddingMode of ["normal","budget-aware"]){
+  const spends=[],late=[],winners=[];let below100=0,at200=0,duplicates=0,overBudget=0;
+  for(let seed=1;seed<=30;seed++){
+   const scenario=["normal","normal","aggressive","conservative","mixed"][(seed-1)%5];
+   const run=runFullMock(players,prices,"h2h",seed,scenario,biddingMode);
+   duplicates+=run.log.length-new Set(run.log.map(x=>x.player)).size;
+   late.push(...run.log.slice(-30).map(x=>x.price));
+   for(const team of run.teams){
+    spends.push(team.spent);
+    below100+=Number(team.spent<100);at200+=Number(team.spent===200);
+    overBudget+=Number(team.spent>200);
+   }
+   winners.push(run.teams.find(t=>t.team===run.winner).spent);
+  }
+  const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
+  report[biddingMode]={teamSpendMean:mean(spends),winnerSpendMean:mean(winners),last30MeanPrice:mean(late),below100,at200,duplicates,overBudget};
+  assert.equal(duplicates,0);assert.equal(overBudget,0);
+ }
+ console.log("BUDGET_AWARE_30_REPORT "+JSON.stringify(report));
+});
