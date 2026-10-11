@@ -347,3 +347,26 @@ test("ROTO 9-slot ranked nomination spending and $180 target report",()=>{
  }
  console.log("ROTO_180_TARGET_REPORT "+JSON.stringify(report));
 });
+
+test("snake nomination sequence reverses at seats 14 and 1",()=>{
+ const run=runFullMock(players,[],"h2h",3,"normal","normal","snake");
+ const expected=[...Array.from({length:14},(_,i)=>i+1),...Array.from({length:14},(_,i)=>14-i),1,2];
+ assert.deepEqual(run.log.slice(0,30).map(p=>p.nominator),expected);
+ assert.equal(run.log.length,168);
+});
+test("compare snake and round-robin spending with matched seeds",()=>{
+ const prices=players.map((p,i)=>({player:p.player,avg:i<5?75-i*5:i<18?49-(i-5)*2:i<65?22-(i-18)*.3:i<110?5+(110-i)*.1:1,proj:i<5?77-i*5:i<18?51-(i-5)*2:i<65?24-(i-18)*.3:i<110?6+(110-i)*.1:1}));
+ const report={};
+ for(const order of ["round-robin","snake"]){
+  let total=0,below180=0,min=200,all180=0;
+  for(let seed=1;seed<=20;seed++){
+   const run=runFullMock(players,prices,"h2h",seed,"normal","budget-aware",order);
+   assert.equal(run.log.length,168);
+   assert.equal(new Set(run.log.map(p=>p.player)).size,168);
+   if(run.teams.every(t=>t.spent>=180))all180++;
+   for(const t of run.teams){assert.equal(t.players.length,12);assert.ok(t.spent<=200);total+=t.spent;below180+=Number(t.spent<180);min=Math.min(min,t.spent);}
+  }
+  report[order]={auctions:20,meanSpend:total/280,below180,min,all180};
+ }
+ console.log("SNAKE_VS_ROUND_ROBIN_REPORT "+JSON.stringify(report));
+});
