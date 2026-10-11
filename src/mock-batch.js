@@ -27,7 +27,7 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    const eligible=open.filter(x=>canAddToRoster(rosters[x.team-1],p,mode));
    const fallback=Math.max(1,Math.round(2+Math.max(0,p.total)*3));
    const reference=league.reference.get(key(p))??fallback;
-   const target=leagueTarget(p,reference,league);
+   const target=leagueTarget(p,reference,league,mode);
    const yahooReference=league.reference.get(key(p));
    const opening=yahooReference>10?Math.floor(yahooReference)+1:1;
    // A nominator must be able to pay the opening bid, reserving $1 per unfilled slot.
