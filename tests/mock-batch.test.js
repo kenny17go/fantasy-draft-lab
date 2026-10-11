@@ -285,3 +285,24 @@ test("100 paired Yahoo-like auctions compare normal and budget-aware market outc
  }
  console.log("BUDGET_AWARE_100_REPORT "+JSON.stringify(report));
 });
+
+test("report every-team 180 dollar spending target across paired auction modes",()=>{
+ const prices=players.map((p,i)=>({player:p.player,avg:i<5?75-i*5:i<18?49-(i-5)*2:i<65?22-(i-18)*.3:i<110?5+(110-i)*.1:1,proj:i<5?77-i*5:i<18?51-(i-5)*2:i<65?24-(i-18)*.3:i<110?6+(110-i)*.1:1}));
+ const report={};
+ for(const biddingMode of ["normal","forced-first-raise","budget-aware"]){
+  let teamBelow180=0,allTeamsAtLeast180=0,lowest=200,total=0,teamCount=0;
+  const ranges={"under100":0,"100to149":0,"150to179":0,"180to199":0,"200":0};
+  for(let seed=1;seed<=30;seed++){
+   const run=runFullMock(players,prices,"h2h",seed,["normal","normal","aggressive","conservative","mixed"][(seed-1)%5],biddingMode);
+   const spent=run.teams.map(t=>t.spent);
+   if(spent.every(v=>v>=180))allTeamsAtLeast180++;
+   for(const v of spent){
+    total+=v;teamCount++;lowest=Math.min(lowest,v);teamBelow180+=Number(v<180);
+    if(v<100)ranges.under100++;else if(v<150)ranges["100to149"]++;else if(v<180)ranges["150to179"]++;else if(v<200)ranges["180to199"]++;else ranges["200"]++;
+   }
+  }
+  report[biddingMode]={auctions:30,teams:teamCount,meanSpend:total/teamCount,minimumTeamSpend:lowest,teamsBelow180:teamBelow180,auctionsWithEveryTeam180:allTeamsAtLeast180,ranges};
+ }
+ console.log("TEAM_SPEND_180_TARGET_REPORT "+JSON.stringify(report));
+ assert.equal(report.normal.teams,420);
+});
