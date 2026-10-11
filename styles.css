@@ -96,3 +96,16 @@ main>section.panel[hidden]{display:none!important}
  #player-detail .detail-grid{gap:8px}
  #player-detail .detail-grid .metric{padding:10px 8px}
 }
+
+/* Follow-up to PR #4: center the actual content panel instead of top-aligning
+   it inside a full-screen dark area. Backdrop remains tappable to dismiss. */
+#player-detail:not([hidden]){
+ align-items:center;
+ padding:calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 12px);
+ background:rgba(5,12,24,.48);
+}
+#player-detail .player-detail-card{
+ flex:0 1 auto;
+ max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px);
+}
+#player-detail .player-detail-card .detail-close{padding:7px 12px;margin-bottom:8px}
