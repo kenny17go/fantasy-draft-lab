@@ -4,8 +4,8 @@ import {buildLeagueMarket,leagueTarget,minimumLeagueBid,priceReality} from "../s
 const prices=Array.from({length:20},(_,i)=>({player:"Player "+(i+1),avg:80-i*3}));
 test("Yahoo prices remain valuation references",()=>{
  const m=buildLeagueMarket(prices);
- assert.equal(leagueTarget({player:"Player 1"},80,m),106);
- assert.equal(leagueTarget({player:"Player 10"},53,m),64);
+ assert.equal(leagueTarget({player:"Player 1"},80,m,"h2h"),114);
+ assert.equal(leagueTarget({player:"Player 10"},53,m,"h2h"),69);
 });
 test("every player can legally clear at $1 regardless of Yahoo reference",()=>{
  const m=buildLeagueMarket([{player:"Low",avg:0,proj:0},{player:"Mid",avg:12.4},{player:"Elite",avg:80}]);
@@ -20,4 +20,11 @@ test("missing and fractional prices are preserved as market references",()=>{
  assert.equal(m.reference.has("zero"),false);
  assert.equal(m.reference.get("fractional"),0.8);
  assert.equal(m.reference.get("only proj"),3);
+});
+
+test("Yahoo 13-slot baseline is scaled to 12 H2H or 9 ROTO auction slots",()=>{
+ const m=buildLeagueMarket([{player:"Starter",avg:40}]);
+ assert.equal(leagueTarget({player:"Starter"},40,m,"h2h"),Math.round(40*1.32*13/12));
+ assert.equal(leagueTarget({player:"Starter"},40,m,"roto"),Math.round(40*1.32*13/9));
+ assert.ok(leagueTarget({player:"Starter"},40,m,"roto")>leagueTarget({player:"Starter"},40,m,"h2h"));
 });
