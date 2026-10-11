@@ -117,3 +117,30 @@ test("100 H2H auctions report clearing-price and budget distributions without as
  assert.equal(Object.values(bins).reduce((a,b)=>a+b,0),16800);
  assert.ok(spends.every(n=>n>=12&&n<=200));
 });
+
+
+test("every nomination has a funded opening bid and either the nominator or a challenger wins",()=>{
+ const prices=players.map((p,i)=>({player:p.player,avg:i<30?50-i:8,proj:i<30?55-i:9}));
+ for(const mode of ["h2h","roto"]){
+  for(const seed of [1,7,19]){
+   const run=runFullMock(players,prices,mode,seed);
+   const spending=Array.from({length:14},()=>0);
+   const counts=Array.from({length:14},()=>0);
+   for(const sale of run.log){
+    const reference=prices.find(p=>p.player===sale.player);
+    const expected=Math.max(reference.avg,reference.proj)>10?Math.floor(Math.max(reference.avg,reference.proj))+1:1;
+    assert.equal(sale.opening,expected);
+    assert.ok(sale.price>=sale.opening);
+    assert.ok(sale.nominator>=1&&sale.nominator<=14);
+    const n=sale.nominator-1;
+    const remaining=CONFIG[mode].budget-spending[n];
+    const open=CONFIG[mode].slots-counts[n];
+    assert.ok(sale.opening<=remaining-(open-1),"nominator must afford opening bid");
+    spending[sale.team-1]+=sale.price;
+    counts[sale.team-1]++;
+   }
+   assert.ok(counts.every(c=>c===CONFIG[mode].slots));
+   assert.ok(spending.every(v=>v<=200));
+  }
+ }
+});
