@@ -563,3 +563,25 @@ test("top-four Yahoo-priced comparison",()=>{
  }
  console.log("TOP4_YAHOO_REPORT "+JSON.stringify(report));
 });
+
+test("top-four spending versus Yahoo value and overpay audit",()=>{
+ const prices=players.map((p,i)=>({player:p.player,avg:i<5?75-i*5:i<18?49-(i-5)*2:i<65?22-(i-18)*.3:i<110?5+(110-i)*.1:1,proj:i<5?77-i*5:i<18?51-(i-5)*2:i<65?24-(i-18)*.3:i<110?6+(110-i)*.1:1}));
+ const yahoo=new Map(prices.map(p=>[p.player,Math.max(p.avg,p.proj)]));
+ const report={};
+ for(const strategy of ["spend-target","paced-target","top4-90","top4-100","top4-110"]){
+  let teams=0,top4Above100=0,top4YahooValue=0,top4Paid=0,over150=0,over200=0;
+  for(let seed=1;seed<=10;seed++){
+   const run=runFullMock(players,prices,"h2h",seed,"normal",strategy);
+   for(const team of run.teams){
+    const top=run.log.filter(p=>p.team===team.team).sort((a,b)=>b.price-a.price).slice(0,4);
+    teams++;
+    const paid=top.reduce((sum,p)=>sum+p.price,0);
+    const value=top.reduce((sum,p)=>sum+(yahoo.get(p.player)??0),0);
+    top4Paid+=paid;top4YahooValue+=value;top4Above100+=Number(paid>100);
+    for(const p of top){const v=yahoo.get(p.player);if(v>0){over150+=Number(p.price>1.5*v);over200+=Number(p.price>2*v);}}
+   }
+  }
+  report[strategy]={top4Above100,meanTop4Paid:top4Paid/teams,meanTop4YahooValue:top4YahooValue/teams,top4Over150:over150,top4Over200:over200};
+ }
+ console.log("TOP4_VALUE_AUDIT "+JSON.stringify(report));
+});
