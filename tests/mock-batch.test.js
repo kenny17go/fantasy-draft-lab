@@ -614,3 +614,16 @@ test("audit full-roster Yahoo value versus auction spend",()=>{
  }
  console.log("FULL_ROSTER_VALUE_AUDIT "+JSON.stringify(out));
 });
+
+test("Yahoo 120 percent cap never overpays known references",()=>{
+ const prices=players.map((p,i)=>({player:p.player,avg:i<5?75-i*5:i<18?49-(i-5)*2:i<65?22-(i-18)*.3:i<110?5+(110-i)*.1:1,proj:i<5?77-i*5:i<18?51-(i-5)*2:i<65?24-(i-18)*.3:i<110?6+(110-i)*.1:1}));
+ const refs=new Map(prices.map(p=>[p.player,Math.max(p.avg,p.proj)]));
+ for(const seed of [1,2,3]){
+  const run=runFullMock(players,prices,"h2h",seed,"normal","cap-120");
+  assert.equal(run.log.length,168);
+  for(const pick of run.log){
+   const ref=refs.get(pick.player);
+   if(ref>0)assert.ok(pick.price<=Math.max(1,Math.floor(ref*1.2)),pick.player+" exceeds Yahoo cap");
+  }
+ }
+});
