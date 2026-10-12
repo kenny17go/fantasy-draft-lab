@@ -12,7 +12,7 @@ jobs:
         with:
           node-version: '22'
       - name: Verify integrated auction and Yahoo benchmark
-        run: node --test --test-name-pattern="integrated Yahoo auction|real Yahoo mock benchmark|final team calibration metrics|Yahoo 120 percent cap" tests/mock-batch.test.js
+        run: node --test --test-name-pattern="integrated Yahoo auction|real Yahoo mock benchmark|final team calibration metrics|Yahoo 120 percent cap|audit Yahoo 120% price-cap supply" tests/mock-batch.test.js
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 45
