@@ -544,3 +544,22 @@ test("top-four goals matched-seed spending report",()=>{
  }
  console.log("TOP4_REPORT "+JSON.stringify(report));
 });
+
+test("top-four Yahoo-priced comparison",()=>{
+ const prices=players.map((p,i)=>({player:p.player,avg:i<5?75-i*5:i<18?49-(i-5)*2:i<65?22-(i-18)*.3:i<110?5+(110-i)*.1:1,proj:i<5?77-i*5:i<18?51-(i-5)*2:i<65?24-(i-18)*.3:i<110?6+(110-i)*.1:1}));
+ const report={};
+ for(const strategy of ["spend-target","paced-target","top4-90","top4-100","top4-110"]){
+  let spent=0,below=0,top4=0,late=0;
+  for(let seed=1;seed<=10;seed++){
+   const run=runFullMock(players,prices,"h2h",seed,"normal",strategy);
+   for(const team of run.teams){
+    spent+=team.spent;below+=Number(team.spent<180);
+    const best=run.log.filter(p=>p.team===team.team).map(p=>p.price).sort((a,b)=>b-a).slice(0,4);
+    top4+=Number(best.reduce((a,b)=>a+b,0)>100);
+    late+=Number(run.log.findIndex(p=>p.team===team.team)>=56);
+   }
+  }
+  report[strategy]={meanSpend:spent/140,below180:below,top4Above100:top4,lateFirst:late};
+ }
+ console.log("TOP4_YAHOO_REPORT "+JSON.stringify(report));
+});
