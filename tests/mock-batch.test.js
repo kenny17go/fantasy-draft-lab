@@ -722,3 +722,22 @@ test("diagnose integrated Yahoo auction clearing prices without changing auction
  assert.equal(picks,1680);
  assert.equal(above10+below10,picks);
 });
+
+test("audit Yahoo 120% price-cap supply against league budget before tuning boosts",()=>{
+ const prices=players.map((p,i)=>({player:p.player,avg:i<5?75-i*5:i<18?49-(i-5)*2:i<65?22-(i-18)*.3:i<110?5+(110-i)*.1:1,proj:i<5?77-i*5:i<18?51-(i-5)*2:i<65?24-(i-18)*.3:i<110?6+(110-i)*.1:1}));
+ const cap=p=>Math.max(1,Math.floor(Math.max(p.avg,p.proj)*1.2));
+ const slots=14*12,budget=14*200;
+ const caps=prices.map(cap).sort((a,b)=>b-a);
+ const maximumUnconstrainedRevenue=caps.slice(0,slots).reduce((a,b)=>a+b,0);
+ const result=runFullMock(players,prices,"h2h",1,"normal","integrated-120");
+ const realizedRevenue=result.teams.reduce((a,t)=>a+t.spent,0);
+ const realizedCaps=result.log.reduce((a,p)=>{
+  const reference=prices.find(q=>q.player===p.player);
+  return a+cap(reference);
+ },0);
+ const report={slots,budget,maximumUnconstrainedRevenue,maximumUnconstrainedMeanSpend:maximumUnconstrainedRevenue/14,realizedRevenue,realizedMeanSpend:realizedRevenue/14,realizedCaps,realizedCapMeanSpend:realizedCaps/14,unselectedCapSupply:maximumUnconstrainedRevenue-realizedCaps};
+ console.log("YAHOO_CAP_SUPPLY_AUDIT "+JSON.stringify(report));
+ assert.ok(realizedRevenue<=realizedCaps);
+ assert.ok(realizedCaps<=maximumUnconstrainedRevenue);
+ assert.ok(maximumUnconstrainedRevenue>=realizedRevenue);
+});
