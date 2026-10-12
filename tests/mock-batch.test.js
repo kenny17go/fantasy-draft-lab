@@ -698,3 +698,25 @@ test("integrated Yahoo auction combines nomination rotation, floor, cap and fina
   assert.equal(t.top4Spend,t.players.map(p=>p.price).sort((a,b)=>b-a).slice(0,4).reduce((a,b)=>a+b,0));
  }
 });
+
+test("diagnose integrated Yahoo auction clearing prices without changing auction outcomes",()=>{
+ const prices=players.map((p,i)=>({player:p.player,avg:i<5?75-i*5:i<18?49-(i-5)*2:i<65?22-(i-18)*.3:i<110?5+(110-i)*.1:1,proj:i<5?77-i*5:i<18?51-(i-5)*2:i<65?24-(i-18)*.3:i<110?6+(110-i)*.1:1}));
+ const refs=new Map(prices.map(p=>[p.player,Math.max(p.avg,p.proj)]));
+ let picks=0,atOpening=0,atCap=0,above10=0,below10=0,highAtOpening=0,nominationWins=0,highReferenceSpend=0,lowReferenceSpend=0;
+ for(let seed=1;seed<=10;seed++){
+  const result=runFullMock(players,prices,"h2h",seed,"normal","integrated-120");
+  for(const pick of result.log){
+   const ref=refs.get(pick.player);
+   picks++;
+   if(pick.price===pick.opening)atOpening++;
+   if(pick.price===Math.max(1,Math.floor(ref*1.2)))atCap++;
+   if(pick.team===pick.nominator)nominationWins++;
+   if(ref>10){above10++;highReferenceSpend+=pick.price;if(pick.price===pick.opening)highAtOpening++;}
+   else {below10++;lowReferenceSpend+=pick.price;}
+  }
+ }
+ const report={picks,atOpening,atOpeningShare:atOpening/picks,atCap,atCapShare:atCap/picks,nominationWins,nominationWinShare:nominationWins/picks,highReferencePicks:above10,highAtOpeningShare:above10?highAtOpening/above10:0,highReferenceSpend,lowReferencePicks:below10,lowReferenceSpend};
+ console.log("INTEGRATED_CLEARING_DIAGNOSTIC "+JSON.stringify(report));
+ assert.equal(picks,1680);
+ assert.equal(above10+below10,picks);
+});
