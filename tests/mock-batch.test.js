@@ -585,3 +585,11 @@ test("top-four spending versus Yahoo value and overpay audit",()=>{
  }
  console.log("TOP4_VALUE_AUDIT "+JSON.stringify(report));
 });
+
+test("value-gated top-four boost requires actual Yahoo prices",()=>{
+ for(const seed of [1,7]){
+  const baseline=runFullMock(players,[],"h2h",seed,"normal","spend-target");
+  const guarded=runFullMock(players,[],"h2h",seed,"normal","top4-value-100");
+  assert.deepEqual(guarded.log.map(p=>[p.player,p.team,p.price]),baseline.log.map(p=>[p.player,p.team,p.price]));
+ }
+});
