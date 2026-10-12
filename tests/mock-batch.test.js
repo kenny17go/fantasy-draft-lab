@@ -593,3 +593,24 @@ test("value-gated top-four boost requires actual Yahoo prices",()=>{
   assert.deepEqual(guarded.log.map(p=>[p.player,p.team,p.price]),baseline.log.map(p=>[p.player,p.team,p.price]));
  }
 });
+
+test("audit full-roster Yahoo value versus auction spend",()=>{
+ const prices=players.map((p,i)=>({player:p.player,avg:i<5?75-i*5:i<18?49-(i-5)*2:i<65?22-(i-18)*.3:i<110?5+(110-i)*.1:1,proj:i<5?77-i*5:i<18?51-(i-5)*2:i<65?24-(i-18)*.3:i<110?6+(110-i)*.1:1}));
+ const refs=new Map(prices.map(p=>[p.player,Math.max(p.avg,p.proj)]));
+ const out={};
+ for(const mode of ["spend-target","paced-target","top4-90","top4-100","top4-110","top4-value-100"]){
+  let paid=0,value=0,teams=0,over150=0,over200=0;
+  for(let seed=1;seed<=10;seed++){
+   const run=runFullMock(players,prices,"h2h",seed,"normal",mode);
+   for(const t of run.teams){
+    teams++;
+    for(const p of run.log.filter(p=>p.team===t.team)){
+     const ref=refs.get(p.player)??0;paid+=p.price;value+=ref;
+     if(ref>0){over150+=Number(p.price>ref*1.5);over200+=Number(p.price>ref*2);}
+    }
+   }
+  }
+  out[mode]={meanSpend:paid/teams,meanYahooValue:value/teams,over150,over200};
+ }
+ console.log("FULL_ROSTER_VALUE_AUDIT "+JSON.stringify(out));
+});
