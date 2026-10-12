@@ -9,7 +9,7 @@ function rng(seed){let s=seed>>>0;return ()=>((s=(Math.imul(s,1664525)+101390422
 export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal",biddingMode="normal",nominationOrder="round-robin"){
  const cfg=CONFIG[mode];if(!cfg)throw Error("未知模式");
  if(players.length<cfg.teams*cfg.slots)throw Error("預測球員不足");
- if(!["normal","forced-first-raise","budget-aware","spend-target","paced-target"].includes(biddingMode))throw Error("未知競標模式");
+ if(!["normal","forced-first-raise","budget-aware","spend-target","paced-target","value-guard"].includes(biddingMode))throw Error("未知競標模式");
  const random=rng(seed),ranked=rankProjections(players),yahoo=new Map(prices.map(p=>[key(p),p])),league=buildLeagueMarket(prices);
  const rosters=Array.from({length:cfg.teams},()=>[]),styles=rosters.map(()=>.85+random()*.3);
  let state=fresh(mode),log=[],nominationTurn=0;
@@ -21,10 +21,10 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
   const progress=state.picks.length/(cfg.teams*cfg.slots);
   const scenarioFactors=new Map(open.map(({team})=>[team,scenario==="aggressive"?1.18:scenario==="conservative"?.85:scenario==="mixed"?(team%2?1.18:.85):1]));
   const categoryNeeds=new Map(open.map(({team})=>[team,1+Math.min(.22,rosters[team-1].length*.012)]));
-  const budgetFactors=new Map(open.map(({team,stats})=>{
+  // Yahoo market values use max(Avg, Proj); absent values are excluded.\n  const topMean=(pool,n)=>{const values=pool.map(p=>league.reference.get(key(p))).filter(v=>Number.isFinite(v)&&v>0).sort((a,b)=>b-a).slice(0,n);return values.length?values.reduce((a,b)=>a+b,0)/values.length:0;};\n  const originalMarketMean=topMean(ranked,cfg.teams*cfg.slots);\n  const budgetFactors=new Map(open.map(({team,stats})=>{
    const discretionary=Math.max(0,stats.remaining-stats.open);
    const perOpen=stats.open>0?discretionary/stats.open:0;
-   const base=biddingMode==="budget-aware"||biddingMode==="spend-target"||biddingMode==="paced-target"?1+Math.min(.25,Math.max(0,perOpen-12)/40)*Math.max(0,(progress-.25)/.75):1;
+   const base=biddingMode==="budget-aware"||biddingMode==="spend-target"||biddingMode==="paced-target"||biddingMode==="value-guard"?1+Math.min(.25,Math.max(0,perOpen-12)/40)*Math.max(0,(progress-.25)/.75):1;
    // Optional $200 goal: respond to spending shortfall while preserving player valuations.
    // Only increase willingness modestly for teams with remaining discretionary cash.
    const spent=cfg.budget-stats.remaining;
@@ -36,7 +36,7 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    const expectedPicks=progress*cfg.slots;
    const missedPicks=Math.max(0,expectedPicks-rosters[team-1].length);
    const pacingBoost=biddingMode==="paced-target"?1+Math.min(.25,missedPicks*.06)*Math.max(0,1-progress):1;
-   return [team,base*goalBoost*pacingBoost];
+   const legal=available.filter(p=>canAddToRoster(rosters[team-1],p,mode));\n   const remainingMean=biddingMode==="value-guard"?topMean(legal,stats.open):0;\n   const valueLoss=originalMarketMean>0?Math.max(0,1-remainingMean/originalMarketMean):0;\n   const valueBoost=biddingMode==="value-guard"&&valueLoss>.15&&stats.remaining/stats.open>remainingMean?1+Math.min(.25,(valueLoss-.15)*.6):1;\n   return [team,base*goalBoost*pacingBoost*valueBoost];
   }));
   // Nomination belongs to a real team, rotating past completed rosters.
   let nominator;
