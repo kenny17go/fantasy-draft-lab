@@ -648,21 +648,22 @@ test("calibrate team spending concentration and dollar-one distribution across s
  const prices=players.map((p,i)=>({player:p.player,avg:i<5?75-i*5:i<18?49-(i-5)*2:i<65?22-(i-18)*.3:i<110?5+(110-i)*.1:1,proj:i<5?77-i*5:i<18?51-(i-5)*2:i<65?24-(i-18)*.3:i<110?6+(110-i)*.1:1}));
  const report={};
  for(const mode of ["spend-target","paced-target","top4-100","top4-value-100","cap-120","integrated-120"]){
-  let teams=0,top4=0,above100=0,oneDollar=0,unspent=0,below180=0;
+  let teams=0,top4=0,top8=0,above100=0,above170=0,both=0,oneDollar=0,unspent=0,below180=0;
   for(let seed=1;seed<=10;seed++){
    const run=runFullMock(players,prices,"h2h",seed,"normal",mode);
    for(const t of run.teams){
-    teams++;top4+=t.top4Spend;above100+=Number(t.top4Spend>100);
+    teams++;top4+=t.top4Spend;top8+=t.top8Spend;above100+=Number(t.top4Spend>100);above170+=Number(t.top8Spend>170);both+=Number(t.top4Spend>100&&t.top8Spend>170);
     oneDollar+=t.dollarOneCount;unspent+=t.unspent;below180+=Number(t.spent<180);
    }
   }
-  report[mode]={meanTop4:top4/teams,above100,meanDollarOne:oneDollar/teams,meanUnspent:unspent/teams,below180};
+  report[mode]={meanTop4:top4/teams,meanTop8:top8/teams,above100,above170,both,meanDollarOne:oneDollar/teams,meanUnspent:unspent/teams,below180};
  }
  const real=JSON.parse(readFileSync(new URL("./fixtures/yahoo-mock-auction-12x13.json",import.meta.url),"utf8"));
  const realTop4=real.pricesByTeam.map(costs=>costs.slice().sort((a,b)=>b-a).slice(0,4).reduce((sum,x)=>sum+x,0));
+ const realTop8=real.pricesByTeam.map(costs=>costs.slice().sort((a,b)=>b-a).slice(0,8).reduce((sum,x)=>sum+x,0));
  const realOneDollar=real.pricesByTeam.flat().filter(x=>x===1).length;
- const benchmark={source:"Yahoo mock 12 teams x 13 slots, price-only; not nomination order",meanSpend:real.pricesByTeam.flat().reduce((a,b)=>a+b,0)/real.teams,meanTop4:realTop4.reduce((a,b)=>a+b,0)/real.teams,top4Above100Share:realTop4.filter(x=>x>100).length/real.teams,oneDollarShare:realOneDollar/(real.teams*real.slots)};
- const comparison=Object.fromEntries(Object.entries(report).map(([mode,r])=>[mode,{...r,top4Above100Share:r.above100/140,oneDollarShare:r.meanDollarOne/12,meanSpend:200-r.meanUnspent}]));
+ const benchmark={source:"Yahoo mock 12 teams x 13 slots, price-only; not nomination order",meanSpend:real.pricesByTeam.flat().reduce((a,b)=>a+b,0)/real.teams,meanTop4:realTop4.reduce((a,b)=>a+b,0)/real.teams,meanTop8:realTop8.reduce((a,b)=>a+b,0)/real.teams,top8Above170Share:realTop8.filter(x=>x>170).length/real.teams,bothTargetsShare:realTop8.filter((x,i)=>x>170&&realTop4[i]>100).length/real.teams,top4Above100Share:realTop4.filter(x=>x>100).length/real.teams,oneDollarShare:realOneDollar/(real.teams*real.slots)};
+ const comparison=Object.fromEntries(Object.entries(report).map(([mode,r])=>[mode,{...r,top4Above100Share:r.above100/140,top8Above170Share:r.above170/140,bothTargetsShare:r.both/140,oneDollarShare:r.meanDollarOne/12,meanSpend:200-r.meanUnspent}]));
  console.log("MOCK_MARKET_CALIBRATION "+JSON.stringify({benchmark,comparison,warning:"12x13 real vs 14x12 synthetic: directional comparison only; Yahoo references not available for real auction"}));
 });
 
@@ -696,6 +697,7 @@ test("integrated Yahoo auction combines nomination rotation, floor, cap and fina
  for(const t of result.teams){
   assert.equal(t.players.length,12);
   assert.equal(t.top4Spend,t.players.map(p=>p.price).sort((a,b)=>b-a).slice(0,4).reduce((a,b)=>a+b,0));
+  assert.equal(t.top8Spend,t.players.map(p=>p.price).sort((a,b)=>b-a).slice(0,8).reduce((a,b)=>a+b,0));
  }
 });
 
