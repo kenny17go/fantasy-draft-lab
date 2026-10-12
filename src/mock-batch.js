@@ -25,7 +25,9 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
   const topMean=(pool,n)=>{const values=pool.map(p=>league.reference.get(key(p))).filter(v=>Number.isFinite(v)&&v>0).sort((a,b)=>b-a).slice(0,n);return values.length?values.reduce((a,b)=>a+b,0)/values.length:0;};
   const originalMarketMean=topMean(ranked,cfg.teams*cfg.slots);
   const top4Goal=({"top4-90":90,"top4-100":100,"top4-110":110,"top4-value-100":100,"integrated-120":100})[biddingMode]??0;
-  const top4Totals=new Map(open.map(({team})=>[team,state.picks.filter(p=>p.team===team).map(p=>p.price).sort((a,b)=>b-a).slice(0,4).reduce((a,b)=>a+b,0)]));
+  const topSpend=(team,n)=>state.picks.filter(p=>p.team===team).map(p=>p.price).sort((a,b)=>b-a).slice(0,n).reduce((a,b)=>a+b,0);
+  const top4Totals=new Map(open.map(({team})=>[team,topSpend(team,4)]));
+  const top8Totals=new Map(open.map(({team})=>[team,topSpend(team,8)]));
   const budgetFactors=new Map(open.map(({team,stats})=>{
    const discretionary=Math.max(0,stats.remaining-stats.open);
    const perOpen=stats.open>0?discretionary/stats.open:0;
@@ -47,7 +49,10 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    const valueBoost=biddingMode==="value-guard"&&valueLoss>.15&&stats.remaining/stats.open>remainingMean?1+Math.min(.25,(valueLoss-.15)*.6):1;
    const top4Sum=top4Totals.get(team);
    const top4Boost=top4Goal>0&&biddingMode!=="top4-value-100"&&top4Sum<top4Goal?1+Math.min(.3,(top4Goal-top4Sum)/top4Goal*.3)*(1-progress):1;
-   return [team,base*goalBoost*pacingBoost*valueBoost*top4Boost];
+   // Encourage core-eight spending early, but never override Yahoo bid caps or roster budgets.
+   const top8Sum=top8Totals.get(team);
+   const top8Boost=biddingMode==="integrated-120"&&top8Sum<=170?1+Math.min(.3,(171-top8Sum)/171*.3)*(1-progress):1;
+   return [team,base*goalBoost*pacingBoost*valueBoost*top4Boost*top8Boost];
   }));
   // Nomination belongs to a real team, rotating past completed rosters.
   let nominator;
@@ -114,8 +119,9 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
   const reference=log.filter(p=>p.team===i+1).reduce((s,p)=>s+p.reference,0);
   const spent=picks.reduce((s,p)=>s+p.price,0);
   const top4Spend=picks.map(p=>p.price).sort((a,b)=>b-a).slice(0,4).reduce((sum,price)=>sum+price,0);
+  const top8Spend=picks.map(p=>p.price).sort((a,b)=>b-a).slice(0,8).reduce((sum,price)=>sum+price,0);
   const dollarOneCount=picks.filter(p=>p.price===1).length;
-  return {team:i+1,players:picks,stats:teamCategories(roster),spent,reference,bargain:reference-spent,top4Spend,dollarOneCount,unspent:cfg.budget-spent};
+  return {team:i+1,players:picks,stats:teamCategories(roster),spent,reference,bargain:reference-spent,top4Spend,top8Spend,dollarOneCount,unspent:cfg.budget-spent};
  });
  // Do not fabricate prices after an auction to make the accounting look balanced.
  // Spending $190–200 is a quality metric, not a legal auction requirement.
