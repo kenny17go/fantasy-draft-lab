@@ -527,3 +527,20 @@ test("top-four strategies complete legal H2H auctions",()=>{
   assert.ok(run.teams.every(t=>t.players.length===12&&t.spent<=200));
  }
 });
+
+test("top-four goals matched-seed spending report",()=>{
+ const report={};
+ for(const strategy of ["spend-target","paced-target","top4-90","top4-100","top4-110"]){
+  let spent=0,below=0,top4=0;
+  for(let seed=1;seed<=10;seed++){
+   const run=runFullMock(players,[],"h2h",seed,"normal",strategy);
+   for(const team of run.teams){
+    spent+=team.spent;below+=Number(team.spent<180);
+    const best=run.log.filter(p=>p.team===team.team).map(p=>p.price).sort((a,b)=>b-a).slice(0,4);
+    top4+=Number(best.reduce((a,b)=>a+b,0)>100);
+   }
+  }
+  report[strategy]={meanSpend:spent/140,below180:below,top4Above100:top4};
+ }
+ console.log("TOP4_REPORT "+JSON.stringify(report));
+});
