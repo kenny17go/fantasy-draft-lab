@@ -113,7 +113,9 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
   const picks=state.picks.filter(p=>p.team===i+1);
   const reference=log.filter(p=>p.team===i+1).reduce((s,p)=>s+p.reference,0);
   const spent=picks.reduce((s,p)=>s+p.price,0);
-  return {team:i+1,players:picks,stats:teamCategories(roster),spent,reference,bargain:reference-spent};
+  const top4Spend=picks.map(p=>p.price).sort((a,b)=>b-a).slice(0,4).reduce((sum,price)=>sum+price,0);
+  const dollarOneCount=picks.filter(p=>p.price===1).length;
+  return {team:i+1,players:picks,stats:teamCategories(roster),spent,reference,bargain:reference-spent,top4Spend,dollarOneCount,unspent:cfg.budget-spent};
  });
  // Do not fabricate prices after an auction to make the accounting look balanced.
  // Spending $190–200 is a quality metric, not a legal auction requirement.
