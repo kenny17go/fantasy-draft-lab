@@ -25,6 +25,7 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
   const topMean=(pool,n)=>{const values=pool.map(p=>league.reference.get(key(p))).filter(v=>Number.isFinite(v)&&v>0).sort((a,b)=>b-a).slice(0,n);return values.length?values.reduce((a,b)=>a+b,0)/values.length:0;};
   const originalMarketMean=topMean(ranked,cfg.teams*cfg.slots);
   const top4Goal=({"top4-90":90,"top4-100":100,"top4-110":110,"top4-value-100":100})[biddingMode]??0;
+  const top4Totals=new Map(open.map(({team})=>[team,state.picks.filter(p=>p.team===team).map(p=>p.price).sort((a,b)=>b-a).slice(0,4).reduce((a,b)=>a+b,0)]));
   const budgetFactors=new Map(open.map(({team,stats})=>{
    const discretionary=Math.max(0,stats.remaining-stats.open);
    const perOpen=stats.open>0?discretionary/stats.open:0;
@@ -44,7 +45,7 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    const remainingMean=biddingMode==="value-guard"?topMean(legal,stats.open):0;
    const valueLoss=originalMarketMean>0?Math.max(0,1-remainingMean/originalMarketMean):0;
    const valueBoost=biddingMode==="value-guard"&&valueLoss>.15&&stats.remaining/stats.open>remainingMean?1+Math.min(.25,(valueLoss-.15)*.6):1;
-   const top4Sum=state.picks.filter(p=>p.team===team).map(p=>p.price).sort((a,b)=>b-a).slice(0,4).reduce((a,b)=>a+b,0);
+   const top4Sum=top4Totals.get(team);
    const top4Boost=top4Goal>0&&biddingMode!=="top4-value-100"&&top4Sum<top4Goal?1+Math.min(.3,(top4Goal-top4Sum)/top4Goal*.3)*(1-progress):1;
    return [team,base*goalBoost*pacingBoost*valueBoost*top4Boost];
   }));
@@ -72,8 +73,8 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    const bids=eligible.map(({team,stats})=>{
     const factor=styles[team-1]*scenarioFactors.get(team)*(.9+random()*.2);
     // Only the per-player random valuation varies across candidates.
-    const fourTotal=state.picks.filter(p=>p.team===team).map(p=>p.price).sort((a,b)=>b-a).slice(0,4).reduce((a,b)=>a+b,0);
-    const qualityFactor=biddingMode==="top4-value-100"&&reference>=25&&fourTotal<100?1+Math.min(.3,(100-fourTotal)/100*.3)*(1-progress):1;
+    const fourTotal=top4Totals.get(team);
+    const qualityFactor=biddingMode==="top4-value-100"&&yahooReference>=25&&fourTotal<100?1+Math.min(.3,(100-fourTotal)/100*.3)*(1-progress):1;
     const willingness=Math.max(1,Math.round(target*factor*categoryNeeds.get(team)*budgetFactors.get(team)*qualityFactor));
     return {team,bid:Math.max(1,Math.min(stats.maxBid,willingness))};
    }).sort((a,b)=>b.bid-a.bid||a.team-b.team);
