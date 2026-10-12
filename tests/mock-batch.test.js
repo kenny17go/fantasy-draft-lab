@@ -642,3 +642,20 @@ test("final team calibration metrics use four costliest players regardless of no
   }
  }
 });
+
+test("calibrate team spending concentration and dollar-one distribution across strategies",()=>{
+ const prices=players.map((p,i)=>({player:p.player,avg:i<5?75-i*5:i<18?49-(i-5)*2:i<65?22-(i-18)*.3:i<110?5+(110-i)*.1:1,proj:i<5?77-i*5:i<18?51-(i-5)*2:i<65?24-(i-18)*.3:i<110?6+(110-i)*.1:1}));
+ const report={};
+ for(const mode of ["spend-target","paced-target","top4-100","top4-value-100","cap-120"]){
+  let teams=0,top4=0,above100=0,oneDollar=0,unspent=0,below180=0;
+  for(let seed=1;seed<=10;seed++){
+   const run=runFullMock(players,prices,"h2h",seed,"normal",mode);
+   for(const t of run.teams){
+    teams++;top4+=t.top4Spend;above100+=Number(t.top4Spend>100);
+    oneDollar+=t.dollarOneCount;unspent+=t.unspent;below180+=Number(t.spent<180);
+   }
+  }
+  report[mode]={meanTop4:top4/teams,above100,meanDollarOne:oneDollar/teams,meanUnspent:unspent/teams,below180};
+ }
+ console.log("MOCK_MARKET_CALIBRATION "+JSON.stringify(report));
+});
