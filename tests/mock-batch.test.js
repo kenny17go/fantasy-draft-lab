@@ -409,3 +409,37 @@ test("round-robin $200 spending goal compared with budget-aware baseline",()=>{
  }
  console.log("SPEND_TARGET_200_COMPARISON "+JSON.stringify(report));
 });
+
+test("diagnose under-$180 rosters without altering auction prices",()=>{
+ const prices=players.map((p,i)=>({player:p.player,avg:i<5?75-i*5:i<18?49-(i-5)*2:i<65?22-(i-18)*.3:i<110?5+(110-i)*.1:1,proj:i<5?77-i*5:i<18?51-(i-5)*2:i<65?24-(i-18)*.3:i<110?6+(110-i)*.1:1}));
+ const report={};
+ for(const mode of ["h2h","roto"]){
+  const samples=[];
+  for(let seed=1;seed<=20;seed++){
+   const run=runFullMock(players,prices,mode,seed,"normal","spend-target","round-robin");
+   for(const team of run.teams){
+    if(team.spent>=180)continue;
+    const picks=run.log.map((pick,index)=>({...pick,index})).filter(p=>p.team===team.team);
+    const third=Math.ceil(run.log.length/3);
+    const early=picks.filter(p=>p.index<third);
+    const middle=picks.filter(p=>p.index>=third&&p.index<2*third);
+    const late=picks.filter(p=>p.index>=2*third);
+    samples.push({seed,team:team.team,spent:team.spent,unspent:200-team.spent,
+     earlySpend:early.reduce((v,p)=>v+p.price,0),
+     middleSpend:middle.reduce((v,p)=>v+p.price,0),
+     lateSpend:late.reduce((v,p)=>v+p.price,0),
+     earlyPicks:early.length,middlePicks:middle.length,latePicks:late.length,
+     openingWins:picks.filter(p=>p.price===p.opening).length,
+     minimumPriceWins:picks.filter(p=>p.price===1).length,
+     firstPickIndex:picks[0]?.index,lastPickIndex:picks.at(-1)?.index});
+   }
+  }
+  const avg=k=>samples.reduce((v,x)=>v+x[k],0)/Math.max(1,samples.length);
+  report[mode]={under180:samples.length,meanEarlySpend:avg("earlySpend"),meanMiddleSpend:avg("middleSpend"),
+   meanLateSpend:avg("lateSpend"),meanEarlyPicks:avg("earlyPicks"),meanLatePicks:avg("latePicks"),
+   meanOpeningWins:avg("openingWins"),meanOneDollarWins:avg("minimumPriceWins"),
+   lowest:samples.toSorted((a,b)=>a.spent-b.spent).slice(0,5)};
+  assert.ok(samples.every(x=>x.earlySpend+x.middleSpend+x.lateSpend===x.spent));
+ }
+ console.log("UNDERSPEND_DIAGNOSTIC_REPORT "+JSON.stringify(report));
+});
