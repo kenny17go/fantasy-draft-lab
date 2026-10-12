@@ -519,3 +519,11 @@ test("compare pacing versus Yahoo value guard on auction prices and draft qualit
  }
  console.log("PACING_PRICE_QUALITY_COMPARISON "+JSON.stringify(report));
 });
+
+test("top-four strategies complete legal H2H auctions",()=>{
+ for(const strategy of ["top4-90","top4-100","top4-110"]){
+  const run=runFullMock(players,[],"h2h",17,"normal",strategy);
+  assert.equal(run.log.length,168);
+  assert.ok(run.teams.every(t=>t.players.length===12&&t.spent<=200));
+ }
+});
