@@ -9,7 +9,7 @@ function rng(seed){let s=seed>>>0;return ()=>((s=(Math.imul(s,1664525)+101390422
 export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal",biddingMode="normal",nominationOrder="round-robin"){
  const cfg=CONFIG[mode];if(!cfg)throw Error("未知模式");
  if(players.length<cfg.teams*cfg.slots)throw Error("預測球員不足");
- if(!["normal","forced-first-raise","budget-aware","spend-target","paced-target","value-guard","top4-90","top4-100","top4-110","top4-value-100"].includes(biddingMode))throw Error("未知競標模式");
+ if(!["normal","forced-first-raise","budget-aware","spend-target","paced-target","value-guard","top4-90","top4-100","top4-110","top4-value-100","cap-120"].includes(biddingMode))throw Error("未知競標模式");
  const random=rng(seed),ranked=rankProjections(players),yahoo=new Map(prices.map(p=>[key(p),p])),league=buildLeagueMarket(prices);
  const rosters=Array.from({length:cfg.teams},()=>[]),styles=rosters.map(()=>.85+random()*.3);
  let state=fresh(mode),log=[],nominationTurn=0;
@@ -68,6 +68,8 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    const target=leagueTarget(p,reference,league,mode);
    const yahooReference=league.reference.get(key(p));
    const opening=yahooReference>10?Math.floor(yahooReference)+1:1;
+   const yahooCap=biddingMode==="cap-120"&&Number.isFinite(yahooReference)&&yahooReference>0?Math.max(1,Math.floor(yahooReference*1.2)):Infinity;
+   if(opening>yahooCap)continue;
    // A nominator must be able to pay the opening bid, reserving $1 per unfilled slot.
    if(nominator.stats.maxBid<opening)continue;
    const bids=eligible.map(({team,stats})=>{
@@ -76,7 +78,7 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
     const fourTotal=top4Totals.get(team);
     const qualityFactor=biddingMode==="top4-value-100"&&yahooReference>=25&&fourTotal<100?1+Math.min(.3,(100-fourTotal)/100*.3)*(1-progress):1;
     const willingness=Math.max(1,Math.round(target*factor*categoryNeeds.get(team)*budgetFactors.get(team)*qualityFactor));
-    return {team,bid:Math.max(1,Math.min(stats.maxBid,willingness))};
+    return {team,bid:Math.max(1,Math.min(stats.maxBid,willingness,yahooCap))};
    }).sort((a,b)=>b.bid-a.bid||a.team-b.team);
    const affordable=bids.filter(b=>b.bid>=1);
    if(!affordable.length)continue;
