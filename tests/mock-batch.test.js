@@ -491,3 +491,31 @@ test("Yahoo max Avg/Proj value guard versus $200 spend target",()=>{
  }
  console.log("YAHOO_VALUE_GUARD_COMPARISON "+JSON.stringify(report));
 });
+
+test("compare pacing versus Yahoo value guard on auction prices and draft quality",()=>{
+ const prices=players.map((p,i)=>({player:p.player,avg:i<5?75-i*5:i<18?49-(i-5)*2:i<65?22-(i-18)*.3:i<110?5+(110-i)*.1:1,proj:i<5?77-i*5:i<18?51-(i-5)*2:i<65?24-(i-18)*.3:i<110?6+(110-i)*.1:1}));
+ const refs=new Map(prices.map(p=>[p.player,Math.max(p.avg,p.proj)]));
+ const report={};
+ for(const mode of ["h2h","roto"]){
+  report[mode]={};
+  for(const strategy of ["spend-target","value-guard","paced-target"]){
+   let count=0,below180=0,overReference=0,aboveTwiceReference=0,totalRatio=0,quality=0,rankSum=0;
+   for(let seed=1;seed<=20;seed++){
+    const run=runFullMock(players,prices,mode,seed,"normal",strategy,"round-robin");
+    for(const team of run.teams){below180+=Number(team.spent<180);quality+=team.score;rankSum+=team.rank;}
+    for(const pick of run.log){
+     const ref=refs.get(pick.player);
+     if(ref>0){
+      count++;
+      const ratio=pick.price/ref;
+      totalRatio+=ratio;
+      overReference+=Number(ratio>1.5);
+      aboveTwiceReference+=Number(ratio>2);
+     }
+    }
+   }
+   report[mode][strategy]={below180,meanPriceToYahoo:totalRatio/count,over150pct:overReference,over200pct:aboveTwiceReference,meanTeamScore:quality/280,meanRank:rankSum/280};
+  }
+ }
+ console.log("PACING_PRICE_QUALITY_COMPARISON "+JSON.stringify(report));
+});
