@@ -658,7 +658,12 @@ test("calibrate team spending concentration and dollar-one distribution across s
   }
   report[mode]={meanTop4:top4/teams,above100,meanDollarOne:oneDollar/teams,meanUnspent:unspent/teams,below180};
  }
- console.log("MOCK_MARKET_CALIBRATION "+JSON.stringify(report));
+ const real=JSON.parse(readFileSync(new URL("./fixtures/yahoo-mock-auction-12x13.json",import.meta.url),"utf8"));
+ const realTop4=real.pricesByTeam.map(costs=>costs.slice().sort((a,b)=>b-a).slice(0,4).reduce((sum,x)=>sum+x,0));
+ const realOneDollar=real.pricesByTeam.flat().filter(x=>x===1).length;
+ const benchmark={source:"Yahoo mock 12 teams x 13 slots, price-only; not nomination order",meanSpend:real.pricesByTeam.flat().reduce((a,b)=>a+b,0)/real.teams,meanTop4:realTop4.reduce((a,b)=>a+b,0)/real.teams,top4Above100Share:realTop4.filter(x=>x>100).length/real.teams,oneDollarShare:realOneDollar/(real.teams*real.slots)};
+ const comparison=Object.fromEntries(Object.entries(report).map(([mode,r])=>[mode,{...r,top4Above100Share:r.above100/140,oneDollarShare:r.meanDollarOne/12,meanSpend:200-r.meanUnspent}]));
+ console.log("MOCK_MARKET_CALIBRATION "+JSON.stringify({benchmark,comparison,warning:"12x13 real vs 14x12 synthetic: directional comparison only; Yahoo references not available for real auction"}));
 });
 
 test("real Yahoo mock benchmark is a 12-by-13 price-only reference, not nomination order",()=>{
