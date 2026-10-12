@@ -31,7 +31,12 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    const desired=cfg.budget*rosters[team-1].length/cfg.slots;
    const shortfall=Math.max(0,desired-spent);
    const goalBoost=(biddingMode==="spend-target"||biddingMode==="paced-target")?1+Math.min(.2,shortfall/Math.max(1,cfg.budget)*.6):1;
-   // Experimental pacing: increase early willingness for teams falling behind\n   // the expected roster-fill pace, without changing auction clearing rules.\n   const expectedPicks=progress*cfg.slots;\n   const missedPicks=Math.max(0,expectedPicks-rosters[team-1].length);\n   const pacingBoost=biddingMode==="paced-target"?1+Math.min(.25,missedPicks*.06)*Math.max(0,1-progress):1;\n   return [team,base*goalBoost*pacingBoost];
+   // Experimental pacing: increase early willingness for teams falling behind
+   // the expected roster-fill pace, without changing auction clearing rules.
+   const expectedPicks=progress*cfg.slots;
+   const missedPicks=Math.max(0,expectedPicks-rosters[team-1].length);
+   const pacingBoost=biddingMode==="paced-target"?1+Math.min(.25,missedPicks*.06)*Math.max(0,1-progress):1;
+   return [team,base*goalBoost*pacingBoost];
   }));
   // Nomination belongs to a real team, rotating past completed rosters.
   let nominator;
