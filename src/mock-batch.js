@@ -9,7 +9,7 @@ function rng(seed){let s=seed>>>0;return ()=>((s=(Math.imul(s,1664525)+101390422
 export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal",biddingMode="normal",nominationOrder="round-robin"){
  const cfg=CONFIG[mode];if(!cfg)throw Error("未知模式");
  if(players.length<cfg.teams*cfg.slots)throw Error("預測球員不足");
- if(!["normal","forced-first-raise","budget-aware","spend-target","paced-target","value-guard","top4-90","top4-100","top4-110"].includes(biddingMode))throw Error("未知競標模式");
+ if(!["normal","forced-first-raise","budget-aware","spend-target","paced-target","value-guard","top4-90","top4-100","top4-110","top4-value-100"].includes(biddingMode))throw Error("未知競標模式");
  const random=rng(seed),ranked=rankProjections(players),yahoo=new Map(prices.map(p=>[key(p),p])),league=buildLeagueMarket(prices);
  const rosters=Array.from({length:cfg.teams},()=>[]),styles=rosters.map(()=>.85+random()*.3);
  let state=fresh(mode),log=[],nominationTurn=0;
@@ -24,7 +24,7 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
   // Yahoo market values use max(Avg, Proj); absent values are excluded.
   const topMean=(pool,n)=>{const values=pool.map(p=>league.reference.get(key(p))).filter(v=>Number.isFinite(v)&&v>0).sort((a,b)=>b-a).slice(0,n);return values.length?values.reduce((a,b)=>a+b,0)/values.length:0;};
   const originalMarketMean=topMean(ranked,cfg.teams*cfg.slots);
-  const top4Goal=({"top4-90":90,"top4-100":100,"top4-110":110})[biddingMode]??0;
+  const top4Goal=({"top4-90":90,"top4-100":100,"top4-110":110,"top4-value-100":100})[biddingMode]??0;
   const budgetFactors=new Map(open.map(({team,stats})=>{
    const discretionary=Math.max(0,stats.remaining-stats.open);
    const perOpen=stats.open>0?discretionary/stats.open:0;
@@ -72,7 +72,8 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    const bids=eligible.map(({team,stats})=>{
     const factor=styles[team-1]*scenarioFactors.get(team)*(.9+random()*.2);
     // Only the per-player random valuation varies across candidates.
-    const willingness=Math.max(1,Math.round(target*factor*categoryNeeds.get(team)*budgetFactors.get(team)));
+    const qualityFactor=biddingMode==="top4-value-100"?(reference>=25?1:1/Math.max(1,budgetFactors.get(team)/1.3)):1;
+    const willingness=Math.max(1,Math.round(target*factor*categoryNeeds.get(team)*budgetFactors.get(team)*qualityFactor));
     return {team,bid:Math.max(1,Math.min(stats.maxBid,willingness))};
    }).sort((a,b)=>b.bid-a.bid||a.team-b.team);
    const affordable=bids.filter(b=>b.bid>=1);
