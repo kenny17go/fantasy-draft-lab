@@ -1,3 +1,4 @@
+import {readFileSync} from "node:fs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {runFullMock,runMockBatch} from "../src/mock-batch.js";
@@ -658,4 +659,21 @@ test("calibrate team spending concentration and dollar-one distribution across s
   report[mode]={meanTop4:top4/teams,above100,meanDollarOne:oneDollar/teams,meanUnspent:unspent/teams,below180};
  }
  console.log("MOCK_MARKET_CALIBRATION "+JSON.stringify(report));
+});
+
+test("real Yahoo mock benchmark is a 12-by-13 price-only reference, not nomination order",()=>{
+ const fixture=JSON.parse(readFileSync(new URL("./fixtures/yahoo-mock-auction-12x13.json",import.meta.url),"utf8"));
+ assert.equal(fixture.teams,12);
+ assert.equal(fixture.slots,13);
+ const totals=fixture.pricesByTeam.map(costs=>{
+  assert.equal(costs.length,13);
+  assert.ok(costs.every(x=>Number.isInteger(x)&&x>=1));
+  return costs.reduce((a,b)=>a+b,0);
+ });
+ assert.equal(totals.reduce((a,b)=>a+b,0),2392);
+ assert.equal(totals.filter(x=>x===200).length,10);
+ const top4=fixture.pricesByTeam.map(costs=>costs.slice().sort((a,b)=>b-a).slice(0,4).reduce((a,b)=>a+b,0));
+ assert.equal(top4.filter(x=>x>100).length,11);
+ const oneDollar=fixture.pricesByTeam.flat().filter(x=>x===1).length;
+ console.log("REAL_YAHOO_MOCK_BENCHMARK "+JSON.stringify({teams:12,slots:13,meanSpend:2392/12,meanTop4:top4.reduce((a,b)=>a+b,0)/12,top4Above100:11,oneDollar,oneDollarShare:oneDollar/156}));
 });
