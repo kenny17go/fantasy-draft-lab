@@ -3,8 +3,19 @@ on:
   push:
   pull_request:
 jobs:
+  focused-auction:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify integrated auction and Yahoo benchmark
+        run: node --test --test-name-pattern="integrated Yahoo auction|real Yahoo mock benchmark|final team calibration metrics|Yahoo 120 percent cap" tests/mock-batch.test.js
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
