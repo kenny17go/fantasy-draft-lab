@@ -631,7 +631,7 @@ test("Yahoo 120 percent cap never overpays known references",()=>{
 
 test("final team calibration metrics use four costliest players regardless of nomination order",()=>{
  for(const mode of ["spend-target","paced-target","top4-100","cap-120"]){
-  const prices=players.map((p,i)=>({player:p.player,avg:Math.max(1,75-i*.4),proj:Math.max(1,76-i*.4)}));
+  const prices=players.map((p,i)=>({player:p.player,avg:i<5?75-i*5:i<18?49-(i-5)*2:i<65?22-(i-18)*.3:i<110?5+(110-i)*.1:1,proj:i<5?77-i*5:i<18?51-(i-5)*2:i<65?24-(i-18)*.3:i<110?6+(110-i)*.1:1}));
   const result=runFullMock(players,prices,"h2h",3,"normal",mode);
   for(const team of result.teams){
    const costs=team.players.map(p=>p.price);
