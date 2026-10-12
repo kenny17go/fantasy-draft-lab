@@ -521,7 +521,7 @@ test("compare pacing versus Yahoo value guard on auction prices and draft qualit
 });
 
 test("top-four strategies complete legal H2H auctions",()=>{
- for(const strategy of ["top4-90","top4-100","top4-110"]){
+ for(const strategy of ["top4-90","top4-100","top4-110","top4-value-100"]){
   const run=runFullMock(players,[],"h2h",17,"normal",strategy);
   assert.equal(run.log.length,168);
   assert.ok(run.teams.every(t=>t.players.length===12&&t.spent<=200));
@@ -530,7 +530,7 @@ test("top-four strategies complete legal H2H auctions",()=>{
 
 test("top-four goals matched-seed spending report",()=>{
  const report={};
- for(const strategy of ["spend-target","paced-target","top4-90","top4-100","top4-110"]){
+ for(const strategy of ["spend-target","paced-target","top4-90","top4-100","top4-110","top4-value-100"]){
   let spent=0,below=0,top4=0;
   for(let seed=1;seed<=10;seed++){
    const run=runFullMock(players,[],"h2h",seed,"normal",strategy);
@@ -548,7 +548,7 @@ test("top-four goals matched-seed spending report",()=>{
 test("top-four Yahoo-priced comparison",()=>{
  const prices=players.map((p,i)=>({player:p.player,avg:i<5?75-i*5:i<18?49-(i-5)*2:i<65?22-(i-18)*.3:i<110?5+(110-i)*.1:1,proj:i<5?77-i*5:i<18?51-(i-5)*2:i<65?24-(i-18)*.3:i<110?6+(110-i)*.1:1}));
  const report={};
- for(const strategy of ["spend-target","paced-target","top4-90","top4-100","top4-110"]){
+ for(const strategy of ["spend-target","paced-target","top4-90","top4-100","top4-110","top4-value-100"]){
   let spent=0,below=0,top4=0,late=0;
   for(let seed=1;seed<=10;seed++){
    const run=runFullMock(players,prices,"h2h",seed,"normal",strategy);
@@ -568,7 +568,7 @@ test("top-four spending versus Yahoo value and overpay audit",()=>{
  const prices=players.map((p,i)=>({player:p.player,avg:i<5?75-i*5:i<18?49-(i-5)*2:i<65?22-(i-18)*.3:i<110?5+(110-i)*.1:1,proj:i<5?77-i*5:i<18?51-(i-5)*2:i<65?24-(i-18)*.3:i<110?6+(110-i)*.1:1}));
  const yahoo=new Map(prices.map(p=>[p.player,Math.max(p.avg,p.proj)]));
  const report={};
- for(const strategy of ["spend-target","paced-target","top4-90","top4-100","top4-110"]){
+ for(const strategy of ["spend-target","paced-target","top4-90","top4-100","top4-110","top4-value-100"]){
   let teams=0,top4Above100=0,top4YahooValue=0,top4Paid=0,over150=0,over200=0;
   for(let seed=1;seed<=10;seed++){
    const run=runFullMock(players,prices,"h2h",seed,"normal",strategy);
