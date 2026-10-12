@@ -9,7 +9,7 @@ function rng(seed){let s=seed>>>0;return ()=>((s=(Math.imul(s,1664525)+101390422
 export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal",biddingMode="normal",nominationOrder="round-robin"){
  const cfg=CONFIG[mode];if(!cfg)throw Error("未知模式");
  if(players.length<cfg.teams*cfg.slots)throw Error("預測球員不足");
- if(!["normal","forced-first-raise","budget-aware","spend-target","paced-target","value-guard","top4-90","top4-100","top4-110","top4-value-100","cap-120"].includes(biddingMode))throw Error("未知競標模式");
+ if(!["normal","forced-first-raise","budget-aware","spend-target","paced-target","value-guard","top4-90","top4-100","top4-110","top4-value-100","cap-120","integrated-120"].includes(biddingMode))throw Error("未知競標模式");
  const random=rng(seed),ranked=rankProjections(players),yahoo=new Map(prices.map(p=>[key(p),p])),league=buildLeagueMarket(prices);
  const rosters=Array.from({length:cfg.teams},()=>[]),styles=rosters.map(()=>.85+random()*.3);
  let state=fresh(mode),log=[],nominationTurn=0;
@@ -24,7 +24,7 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
   // Yahoo market values use max(Avg, Proj); absent values are excluded.
   const topMean=(pool,n)=>{const values=pool.map(p=>league.reference.get(key(p))).filter(v=>Number.isFinite(v)&&v>0).sort((a,b)=>b-a).slice(0,n);return values.length?values.reduce((a,b)=>a+b,0)/values.length:0;};
   const originalMarketMean=topMean(ranked,cfg.teams*cfg.slots);
-  const top4Goal=({"top4-90":90,"top4-100":100,"top4-110":110,"top4-value-100":100})[biddingMode]??0;
+  const top4Goal=({"top4-90":90,"top4-100":100,"top4-110":110,"top4-value-100":100,"integrated-120":100})[biddingMode]??0;
   const top4Totals=new Map(open.map(({team})=>[team,state.picks.filter(p=>p.team===team).map(p=>p.price).sort((a,b)=>b-a).slice(0,4).reduce((a,b)=>a+b,0)]));
   const budgetFactors=new Map(open.map(({team,stats})=>{
    const discretionary=Math.max(0,stats.remaining-stats.open);
@@ -40,7 +40,7 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    // the expected roster-fill pace, without changing auction clearing rules.
    const expectedPicks=progress*cfg.slots;
    const missedPicks=Math.max(0,expectedPicks-rosters[team-1].length);
-   const pacingBoost=biddingMode==="paced-target"?1+Math.min(.25,missedPicks*.06)*Math.max(0,1-progress):1;
+   const pacingBoost=(biddingMode==="paced-target"||biddingMode==="integrated-120")?1+Math.min(.25,missedPicks*.06)*Math.max(0,1-progress):1;
    const legal=available.filter(p=>canAddToRoster(rosters[team-1],p,mode));
    const remainingMean=biddingMode==="value-guard"?topMean(legal,stats.open):0;
    const valueLoss=originalMarketMean>0?Math.max(0,1-remainingMean/originalMarketMean):0;
@@ -67,8 +67,8 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    const reference=league.reference.get(key(p))??fallback;
    const target=leagueTarget(p,reference,league,mode);
    const yahooReference=league.reference.get(key(p));
-   const opening=yahooReference>10?Math.floor(yahooReference)+1:1;
-   const yahooCap=biddingMode==="cap-120"&&Number.isFinite(yahooReference)&&yahooReference>0?Math.max(1,Math.floor(yahooReference*1.2)):Infinity;
+   const opening=yahooReference>10?Math.ceil(yahooReference):1;
+   const yahooCap=(biddingMode==="cap-120"||biddingMode==="integrated-120")&&Number.isFinite(yahooReference)&&yahooReference>0?Math.max(1,Math.floor(yahooReference*1.2)):Infinity;
    if(opening>yahooCap)continue;
    // A nominator must be able to pay the opening bid, reserving $1 per unfilled slot.
    if(nominator.stats.maxBid<opening)continue;
