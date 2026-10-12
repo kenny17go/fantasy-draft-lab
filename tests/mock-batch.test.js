@@ -682,3 +682,19 @@ test("real Yahoo mock benchmark is a 12-by-13 price-only reference, not nominati
  const oneDollar=fixture.pricesByTeam.flat().filter(x=>x===1).length;
  console.log("REAL_YAHOO_MOCK_BENCHMARK "+JSON.stringify({teams:12,slots:13,meanSpend:2392/12,meanTop4:top4.reduce((a,b)=>a+b,0)/12,top4Above100:11,oneDollar,oneDollarShare:oneDollar/156}));
 });
+
+test("integrated Yahoo auction combines nomination rotation, floor, cap and final top-four metrics",()=>{
+ const prices=players.map((p,i)=>({player:p.player,avg:i<5?75-i*5:i<18?49-(i-5)*2:i<65?22-(i-18)*.3:i<110?5+(110-i)*.1:1,proj:i<5?77-i*5:i<18?51-(i-5)*2:i<65?24-(i-18)*.3:i<110?6+(110-i)*.1:1}));
+ const refs=new Map(prices.map(p=>[p.player,Math.max(p.avg,p.proj)]));
+ const result=runFullMock(players,prices,"h2h",2,"normal","integrated-120");
+ assert.equal(result.log.length,168);
+ for(const pick of result.log){
+  const ref=refs.get(pick.player);
+  if(ref>10)assert.ok(pick.price>=Math.ceil(ref),pick.player+" below Yahoo reference floor");
+  assert.ok(pick.price<=Math.max(1,Math.floor(ref*1.2)),pick.player+" above Yahoo 120% cap");
+ }
+ for(const t of result.teams){
+  assert.equal(t.players.length,12);
+  assert.equal(t.top4Spend,t.players.map(p=>p.price).sort((a,b)=>b-a).slice(0,4).reduce((a,b)=>a+b,0));
+ }
+});
