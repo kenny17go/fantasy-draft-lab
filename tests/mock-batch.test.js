@@ -130,7 +130,7 @@ test("every nomination has a funded opening bid and either the nominator or a ch
    const counts=Array.from({length:14},()=>0);
    for(const sale of run.log){
     const reference=prices.find(p=>p.player===sale.player);
-    const expected=Math.max(reference.avg,reference.proj)>10?Math.floor(Math.max(reference.avg,reference.proj))+1:1;
+    const expected=Math.max(reference.avg,reference.proj)>10?Math.ceil(Math.max(reference.avg,reference.proj)):1;
     assert.equal(sale.opening,expected);
     assert.ok(sale.price>=sale.opening);
     assert.ok(sale.nominator>=1&&sale.nominator<=14);
