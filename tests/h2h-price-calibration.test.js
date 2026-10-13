@@ -8,7 +8,7 @@ test("H2H calibration preserves original Yahoo Avg and Proj",()=>{
  const adjusted=adjustedH2HPrices(original);
  assert.deepEqual(original,snapshot);
  assert.ok(Math.abs(H2H_PRICE_SCALE-13/12)<1e-12);
- assert.equal(adjusted[0].adjustedAvg,32.5);
+ assert.equal(adjusted[0].adjustedAvg,30);
  assert.equal(adjusted[0].adjustedProj,34.7);
  assert.equal(adjusted[0].opening,35);
  assert.equal(adjusted[0].cap,41);
@@ -32,4 +32,12 @@ test("H2H low-price players retain a legal $1 opening even after rounding",()=>{
  const report=auditH2HPriceSupply(prices);
  assert.equal(report.incompatibleFloorCap,0);
  assert.equal(adjustedH2HPrices(prices)[0].opening,1);
+});
+
+test("strictly greater opening at exact integer reference and $10 boundary",()=>{
+ const rows=adjustedH2HPrices([{player:"A",avg:42,proj:0},{player:"B",avg:10,proj:0},{player:"C",avg:10.1,proj:0}]);
+ assert.equal(rows[0].opening,43);
+ assert.equal(rows[1].opening,1);
+ assert.equal(rows[2].opening,11);
+ assert.ok(rows[0].opening>rows[0].adjustedAvg);
 });
