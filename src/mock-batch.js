@@ -80,6 +80,7 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
   for(const p of available){
    // Reserve outside-top-168 nominations for teams averaging strictly under $2 per open slot.
    // Use the original projection rank, not the shrinking available-player index.
+   if(mode==="h2h"&&nominator.stats.remaining>20&&ranked.indexOf(p)>=100)continue;
    if(mode==="h2h"&&ranked.indexOf(p)>=cfg.teams*cfg.slots&&!(nominator.stats.remaining/nominator.stats.open<2))continue;
    if(!canAddToRoster(rosters[nominator.team-1],p,mode))continue;
    const eligible=open.filter(x=>canAddToRoster(rosters[x.team-1],p,mode));
