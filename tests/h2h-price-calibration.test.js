@@ -7,9 +7,9 @@ test("H2H calibration preserves original Yahoo Avg and Proj",()=>{
  const snapshot=structuredClone(original);
  const adjusted=adjustedH2HPrices(original);
  assert.deepEqual(original,snapshot);
- assert.equal(H2H_PRICE_SCALE,13/12);
- assert.equal(adjusted[0].adjustedAvg,30*13/12);
- assert.equal(adjusted[0].adjustedProj,32*13/12);
+ assert.ok(Math.abs(H2H_PRICE_SCALE-13/12)<1e-12);
+ assert.ok(Math.abs(adjusted[0].adjustedAvg-30*13/12)<1e-10);
+ assert.ok(Math.abs(adjusted[0].adjustedProj-32*13/12)<1e-10);
  assert.equal(adjusted[0].opening,35);
  assert.equal(adjusted[0].cap,41);
  assert.equal(adjusted[1].opening,1);
