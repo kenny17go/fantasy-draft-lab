@@ -1,4 +1,5 @@
 import {buildLeagueMarket,leagueTarget,minimumLeagueBid} from "./league-market.js";
+import {adjustedH2HPrices} from "./h2h-price-calibration.js";
 import {CONFIG,addPick,fresh,teamStats} from "./model.js";
 import {rankProjections,teamCategories} from "./projections.js";
 import {canAddToRoster} from "./roster.js";
@@ -6,81 +7,163 @@ import {evaluateDraft} from "./evaluation.js";
 const key=p=>p.player.trim().toLowerCase();
 const cats=["fgPct","ftPct","three","pts","reb","ast","stl","blk","tov"];
 function rng(seed){let s=seed>>>0;return ()=>((s=(Math.imul(s,1664525)+1013904223)>>>0)/4294967296);}
-export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal"){
+// Second-price-style ascending auction with the nominator holding the opening bid.
+// All maximum bids must already respect roster budgets and any price cap.
+export function settleNomination(opening,nominator,nominatorMax,challengers=[]){
+ if(!Number.isInteger(opening)||opening<1||!Number.isInteger(nominatorMax)||nominatorMax<opening)throw Error("無效提名價或提名者上限");
+ const raises=challengers.filter(x=>x.team!==nominator&&Number.isInteger(x.bid)&&x.bid>opening);
+ if(!raises.length)return {team:nominator,price:opening,raised:false};
+ const bids=[{team:nominator,bid:nominatorMax},...raises].sort((a,b)=>b.bid-a.bid||(a.team===nominator?-1:b.team===nominator?1:a.team-b.team));
+ const winner=bids[0],runnerUp=bids[1];
+ const price=Math.min(winner.bid,Math.max(opening,runnerUp.bid+1));
+ return {team:winner.team,price,raised:true};
+}
+export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal",biddingMode="normal",nominationOrder="round-robin"){
  const cfg=CONFIG[mode];if(!cfg)throw Error("未知模式");
  if(players.length<cfg.teams*cfg.slots)throw Error("預測球員不足");
- const random=rng(seed),ranked=rankProjections(players),yahoo=new Map(prices.map(p=>[key(p),p])),league=buildLeagueMarket(prices);
+ if(!["normal","forced-first-raise","budget-aware","spend-target","paced-target","value-guard","top4-90","top4-100","top4-110","top4-value-100","cap-120","integrated-120"].includes(biddingMode))throw Error("未知競標模式");
+ const random=rng(seed),ranked=rankProjections(players),yahoo=new Map(prices.map(p=>[key(p),p])),calibrated=mode==="h2h"?adjustedH2HPrices(prices):prices,league=buildLeagueMarket(calibrated.map(p=>({...p,avg:p.adjustedAvg??p.avg,proj:p.adjustedProj??p.proj})));
  const rosters=Array.from({length:cfg.teams},()=>[]),styles=rosters.map(()=>.85+random()*.3);
- const minSpend=cfg.budget-10;
- let state=fresh(mode),log=[];
+ let state=fresh(mode),log=[],nominationTurn=0;
  while(state.picks.length<cfg.teams*cfg.slots){
   const taken=new Set(state.picks.map(p=>p.player.toLowerCase()));
   const available=ranked.filter(p=>!taken.has(key(p)));
   const open=rosters.map((r,i)=>({team:i+1,stats:teamStats(state,i+1)})).filter(x=>x.stats.open);
-  let choices=[];
-  // Search all candidates to avoid dead ends caused by rigid nomination order.
+  // These quantities are invariant across candidate players within this round.
+  const progress=state.picks.length/(cfg.teams*cfg.slots);
+  const scenarioFactors=new Map(open.map(({team})=>[team,scenario==="aggressive"?1.18:scenario==="conservative"?.85:scenario==="mixed"?(team%2?1.18:.85):1]));
+  const categoryNeeds=new Map(open.map(({team})=>[team,1+Math.min(.22,rosters[team-1].length*.012)]));
+  // Yahoo market values use max(Avg, Proj); absent values are excluded.
+  const topMean=(pool,n)=>{const values=pool.map(p=>league.reference.get(key(p))).filter(v=>Number.isFinite(v)&&v>0).sort((a,b)=>b-a).slice(0,n);return values.length?values.reduce((a,b)=>a+b,0)/values.length:0;};
+  const originalMarketMean=topMean(ranked,cfg.teams*cfg.slots);
+  const top4Goal=({"top4-90":90,"top4-100":100,"top4-110":110,"top4-value-100":100,"integrated-120":100})[biddingMode]??0;
+  const topSpend=(team,n)=>state.picks.filter(p=>p.team===team).map(p=>p.price).sort((a,b)=>b-a).slice(0,n).reduce((a,b)=>a+b,0);
+  const top4Totals=new Map(open.map(({team})=>[team,topSpend(team,4)]));
+  const top8Totals=new Map(open.map(({team})=>[team,topSpend(team,8)]));
+  const budgetFactors=new Map(open.map(({team,stats})=>{
+   const discretionary=Math.max(0,stats.remaining-stats.open);
+   const perOpen=stats.open>0?discretionary/stats.open:0;
+   const base=biddingMode==="budget-aware"||biddingMode==="spend-target"||biddingMode==="paced-target"||(biddingMode==="value-guard"||top4Goal>0)?1+Math.min(.25,Math.max(0,perOpen-12)/40)*Math.max(0,(progress-.25)/.75):1;
+   // Optional $200 goal: respond to spending shortfall while preserving player valuations.
+   // Only increase willingness modestly for teams with remaining discretionary cash.
+   const spent=cfg.budget-stats.remaining;
+   const desired=cfg.budget*rosters[team-1].length/cfg.slots;
+   const shortfall=Math.max(0,desired-spent);
+   const goalBoost=(biddingMode==="spend-target"||biddingMode==="paced-target"||top4Goal>0)?1+Math.min(.2,shortfall/Math.max(1,cfg.budget)*.6):1;
+   // Experimental pacing: increase early willingness for teams falling behind
+   // the expected roster-fill pace, without changing auction clearing rules.
+   const expectedPicks=progress*cfg.slots;
+   const missedPicks=Math.max(0,expectedPicks-rosters[team-1].length);
+   const pacingBoost=(biddingMode==="paced-target"||biddingMode==="integrated-120")?1+Math.min(.25,missedPicks*.06)*Math.max(0,1-progress):1;
+   const legal=available.filter(p=>canAddToRoster(rosters[team-1],p,mode));
+   const remainingMean=biddingMode==="value-guard"?topMean(legal,stats.open):0;
+   const valueLoss=originalMarketMean>0?Math.max(0,1-remainingMean/originalMarketMean):0;
+   const valueBoost=biddingMode==="value-guard"&&valueLoss>.15&&stats.remaining/stats.open>remainingMean?1+Math.min(.25,(valueLoss-.15)*.6):1;
+   const top4Sum=top4Totals.get(team);
+   const top4Boost=top4Goal>0&&biddingMode!=="top4-value-100"&&top4Sum<top4Goal?1+Math.min(.3,(top4Goal-top4Sum)/top4Goal*.3)*(1-progress):1;
+   // Encourage core-eight spending early, but never override Yahoo bid caps or roster budgets.
+   const top8Sum=top8Totals.get(team);
+   const top8Boost=biddingMode==="integrated-120"&&top8Sum<=170?1+Math.min(.3,(171-top8Sum)/171*.3)*(1-progress):1;
+   return [team,base*goalBoost*pacingBoost*valueBoost*top4Boost*top8Boost];
+  }));
+  // Nomination belongs to a real team, rotating past completed rosters.
+  let nominator;
+  do {
+   const phase=nominationTurn%(cfg.teams*2);
+   const seat=nominationOrder==="snake"?(phase<cfg.teams?phase+1:cfg.teams*2-phase):nominationTurn%cfg.teams+1;
+   nominationTurn++;
+   nominator=open.find(x=>x.team===seat);
+  } while(!nominator);
+  let chosen=null;
+  // Nominate the highest-ranked remaining player that this team can legally
+  // nominate and roster. No random nomination window.
   for(const p of available){
+   // Reserve outside-top-168 nominations for teams averaging strictly under $2 per open slot.
+   // Use the original projection rank, not the shrinking available-player index.
+   // Keep the post-168 reserve rule, but do not use the former $20/top-100 exception.
+   // When budget exceeds $20, prefer ranks 1-100; expand to 101-168 only if no legal top-100 nominee exists.
+   if(mode==="h2h"&&nominator.stats.remaining>20&&ranked.indexOf(p)>=100&&available.some(q=>{
+    if(ranked.indexOf(q)>=100||!canAddToRoster(rosters[nominator.team-1],q,mode))return false;
+    const ref=league.reference.get(key(q));
+    const opening=Number.isFinite(ref)&&ref>0?Math.floor(ref)+1:1;
+    const cap=(biddingMode==="cap-120"||biddingMode==="integrated-120")&&Number.isFinite(ref)&&ref>0?Math.max(1,Math.floor(ref*1.2)):Infinity;
+    return opening<=cap&&opening<=nominator.stats.maxBid;
+   }))continue;
+   if(mode==="h2h"&&ranked.indexOf(p)>=cfg.teams*cfg.slots&&!(nominator.stats.remaining/nominator.stats.open<2))continue;
+   if(!canAddToRoster(rosters[nominator.team-1],p,mode))continue;
    const eligible=open.filter(x=>canAddToRoster(rosters[x.team-1],p,mode));
-   if(!eligible.length)continue;
-   const market=yahoo.get(key(p)),fallback=Math.max(1,Math.round(2+Math.max(0,p.total)*3));
+   const fallback=Math.max(1,Math.round(2+Math.max(0,p.total)*3));
    const reference=league.reference.get(key(p))??fallback;
-   const target=leagueTarget(p,reference,league);
-   const floor=minimumLeagueBid(p,reference,league);
+   const target=leagueTarget(p,reference,league,mode);
+   const yahooReference=league.reference.get(key(p));
+   const opening=Number.isFinite(yahooReference)&&yahooReference>0?Math.floor(yahooReference)+1:1;
+   const yahooCap=(biddingMode==="cap-120"||biddingMode==="integrated-120")&&Number.isFinite(yahooReference)&&yahooReference>0?Math.max(1,Math.floor(yahooReference*1.2)):Infinity;
+   if(opening>yahooCap)continue;
+   // A nominator must be able to pay the opening bid, reserving $1 per unfilled slot.
+   if(nominator.stats.maxBid<opening)continue;
    const bids=eligible.map(({team,stats})=>{
-    const scenarioFactor=scenario==="aggressive"?1.18:scenario==="conservative"?.85:scenario==="mixed"?(team%2?1.18:.85):1;
-    const factor=styles[team-1]*scenarioFactor*(.9+random()*.2);
-    // Managers with excess unspent cash bid more aggressively while there are still choices.
-    const cashPerSlot=stats.remaining/stats.open;
-    const pace=Math.max(1,Math.min(2.5,cashPerSlot/(cfg.budget/cfg.slots)));
-    // Spend the available budget during bidding, not by editing auction prices afterward.
-    // Reserve enough money for the remaining slots and prioritize high-value nominations.
-    const budgetBid=Math.round(cashPerSlot*(.85+Math.max(0,Math.min(1,p.total/12))*.5));
-    const planned=Math.max(Math.round(target*factor*pace),budgetBid);
-    const minimumToFinish=stats.open===1?Math.max(1,stats.remaining-10):1;
-    return {team,bid:Math.max(1,Math.min(stats.maxBid,Math.max(minimumToFinish,planned)))};
+    const factor=styles[team-1]*scenarioFactors.get(team)*(.9+random()*.2);
+    // Only the per-player random valuation varies across candidates.
+    const fourTotal=top4Totals.get(team);
+    const qualityFactor=biddingMode==="top4-value-100"&&yahooReference>=25&&fourTotal<100?1+Math.min(.3,(100-fourTotal)/100*.3)*(1-progress):1;
+    const willingness=Math.max(1,Math.round(target*factor*categoryNeeds.get(team)*budgetFactors.get(team)*qualityFactor));
+    return {team,bid:Math.max(1,Math.min(stats.maxBid,willingness,yahooCap))};
    }).sort((a,b)=>b.bid-a.bid||a.team-b.team);
-   const affordable=bids.filter(b=>b.bid>=Math.max(floor,open.find(x=>x.team===b.team).stats.open===1?Math.max(1,open.find(x=>x.team===b.team).stats.remaining-10):1));
+   const affordable=bids.filter(b=>b.bid>=1);
    if(!affordable.length)continue;
-   const winnerStats=open.find(x=>x.team===affordable[0].team).stats;
-   const reserve=Math.max(floor,winnerStats.open===1?Math.max(1,winnerStats.remaining-10):1);
-   const clearing=affordable.length>1?Math.min(affordable[0].bid,Math.max(reserve,affordable[1].bid+1)):reserve;
-   choices.push({p,reference,bid:clearing,team:affordable[0].team});
-   if(choices.length>=16)break;
+   // The nominator commits to the opening bid. Other teams may outbid only
+   // if their own valuation and remaining legal budget permit it.
+   const challengers=affordable.filter(b=>b.team!==nominator.team&&b.bid>opening);
+   const forcedEligible=eligible.filter(x=>x.team!==nominator.team&&x.stats.maxBid>=opening+1);
+   // Optional stress-test: at least one other legal team must raise once,
+   // even when its normal valuation is below the opening price.
+   if(biddingMode==="forced-first-raise"&&challengers.length===0&&forcedEligible.length){
+    const challenger=forcedEligible[Math.floor(random()*forcedEligible.length)];
+    challengers.push({team:challenger.team,bid:opening+1});
+   }
+   challengers.sort((a,b)=>b.bid-a.bid||a.team-b.team);
+   const nominatorMax=Math.max(opening,affordable.find(b=>b.team===nominator.team)?.bid??opening);
+   const settlement=settleNomination(opening,nominator.team,nominatorMax,challengers);
+   const winner=settlement.team,clearing=settlement.price;
+   if(clearing<opening||clearing>yahooCap)throw Error("競價成交價違反提名價或 Yahoo 上限");
+   chosen={p,reference,bid:clearing,team:winner,nominator:nominator.team,opening,yahooCap};
+   break;
   }
-  if(!choices.length)throw Error("無法在真實溢價與剩餘預算下填滿陣容；請檢查 Yahoo 價格及競標設定，不能降價硬湊");
-  // Nominate across the league rather than repeatedly feeding the first teams.
-  // Prioritize managers with open slots and substantial cash left to deploy.
-  const mostBehind=Math.max(...open.map(x=>x.stats.remaining/x.stats.open));
-  const urgent=choices.filter(x=>{
-   const st=open.find(y=>y.team===x.team).stats;
-   return st.remaining/st.open>=mostBehind*.85;
-  });
-  const pool=urgent.length?urgent:choices;
-  const chosen=pool[Math.floor(random()*Math.min(pool.length,8))];
-  const stats=teamStats(state,chosen.team);
+  if(!chosen){
+   const legal=available.filter(p=>canAddToRoster(rosters[nominator.team-1],p,mode));
+   const diagnostic={seed,mode,biddingMode,picks:state.picks.length,nominator:nominator.team,remaining:nominator.stats.remaining,open:nominator.stats.open,maxBid:nominator.stats.maxBid,available:available.length,rosterLegal:legal.length,affordable:legal.filter(p=>{const ref=league.reference.get(key(p));const opening=Number.isFinite(ref)&&ref>0?Math.floor(ref)+1:1;const cap=(biddingMode==="cap-120"||biddingMode==="integrated-120")&&Number.isFinite(ref)&&ref>0?Math.max(1,Math.floor(ref*1.2)):Infinity;return opening<=cap&&opening<=nominator.stats.maxBid;}).length};
+   const remainingPriceRows=legal.map(p=>{const ref=league.reference.get(key(p));const opening=Number.isFinite(ref)&&ref>0?Math.floor(ref)+1:1;return {player:p.player,rank:ranked.indexOf(p)+1,reference:ref??null,opening};});
+   const oneDollarRemaining=remainingPriceRows.filter(p=>p.opening===1);
+   const soldOneDollar=log.filter(p=>p.opening===1);
+   diagnostic.priceAudit={remainingOneDollarCount:oneDollarRemaining.length,remainingHighOpeningCount:remainingPriceRows.length-oneDollarRemaining.length,cheapestRemaining:remainingPriceRows.slice().sort((a,b)=>a.opening-b.opening||a.rank-b.rank).slice(0,10),soldOneDollarCount:soldOneDollar.length,soldOneDollarByTeam:Object.fromEntries([...new Set(soldOneDollar.map(p=>p.team))].sort((a,b)=>a-b).map(team=>[team,soldOneDollar.filter(p=>p.team===team).length])),lastTenOneDollarSales:soldOneDollar.slice(-10).map(p=>({player:p.player,team:p.team,price:p.price,opening:p.opening,pick:log.indexOf(p)+1}))};
+   throw Error("無符合位置及預算限制的可競標球員 "+JSON.stringify(diagnostic));
+  }
   const price=chosen.bid;
   state=addPick(state,{player:chosen.p.player,team:chosen.team,price});
   rosters[chosen.team-1].push(chosen.p);
-  log.push({player:chosen.p.player,team:chosen.team,price,reference:chosen.reference});
+  log.push({player:chosen.p.player,team:chosen.team,nominator:chosen.nominator,opening:chosen.opening,price,biddingMode,reference:chosen.reference,yahooCap:Number.isFinite(chosen.yahooCap)?chosen.yahooCap:null});
  }
  const teams=rosters.map((roster,i)=>{
   const picks=state.picks.filter(p=>p.team===i+1);
   const reference=log.filter(p=>p.team===i+1).reduce((s,p)=>s+p.reference,0);
   const spent=picks.reduce((s,p)=>s+p.price,0);
-  return {team:i+1,players:picks,stats:teamCategories(roster),spent,reference,bargain:reference-spent};
+  const top4Spend=picks.map(p=>p.price).sort((a,b)=>b-a).slice(0,4).reduce((sum,price)=>sum+price,0);
+  const top8Spend=picks.map(p=>p.price).sort((a,b)=>b-a).slice(0,8).reduce((sum,price)=>sum+price,0);
+  const dollarOneCount=picks.filter(p=>p.price===1).length;
+  return {team:i+1,players:picks,stats:teamCategories(roster),spent,reference,bargain:reference-spent,top4Spend,top8Spend,dollarOneCount,unspent:cfg.budget-spent};
  });
  // Do not fabricate prices after an auction to make the accounting look balanced.
- // A realistic league is valid only when all teams spend within $10 of the cap.
- if(teams.some(t=>t.spent<minSpend||t.spent>cfg.budget))throw Error("預算驗證失敗：14 隊必須各花 $"+minSpend+"～$"+cfg.budget+"；實際花費 "+teams.map(t=>t.spent).join(", ")+"；本場結果不列入推薦");
+ // Spending $190–200 is a quality metric, not a legal auction requirement.
+ if(teams.some(t=>t.spent>cfg.budget||t.players.length!==cfg.slots))throw Error("選秀預算或陣容驗證失敗");
  const evaluation=evaluateDraft(state,players);
  const order=new Map(evaluation.standings.map((x,i)=>[x.team,{rank:i+1,score:x.score}]));
  teams.forEach(t=>{t.rank=order.get(t.team).rank;t.score=order.get(t.team).score;});
  return {seed,scenario,mode,teams,log,winner:evaluation.standings[0].team,metric:evaluation.metric};
 }
-export function runMockBatch(players,prices=[],mode="h2h",count=100){
+export function runMockBatch(players,prices=[],mode="h2h",count=100,biddingMode="normal"){
  if(!Number.isInteger(count)||count<1||count>100)throw Error("模擬次數須為 1–100");
  const scenarios=["normal","normal","aggressive","conservative","mixed"];
- const results=Array.from({length:count},(_,i)=>runFullMock(players,prices,mode,i+1,scenarios[i%scenarios.length]));
+ const results=Array.from({length:count},(_,i)=>runFullMock(players,prices,mode,i+1,scenarios[i%scenarios.length],biddingMode));
  const all=results.flatMap((r,i)=>r.teams.map(t=>({...t,run:i+1,scenario:r.scenario})));
  const stats=Object.fromEntries(cats.map(cat=>{
   const v=all.map(t=>t.stats[cat]).filter(Number.isFinite),mean=v.reduce((a,b)=>a+b,0)/v.length;

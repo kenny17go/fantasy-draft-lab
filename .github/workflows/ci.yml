@@ -2,9 +2,23 @@ name: CI
 on:
   push:
   pull_request:
+  workflow_dispatch:
 jobs:
+  focused-auction:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify integrated auction and Yahoo benchmark
+        run: |
+          node --test tests/h2h-price-calibration.test.js
+          node --test --test-name-pattern="integrated Yahoo auction|real Yahoo mock benchmark|final team calibration metrics|Yahoo 120 percent cap|audit Yahoo 120% price-cap supply|nomination settlement|H2H capped auction|every nomination has a funded opening" tests/mock-batch.test.js
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
