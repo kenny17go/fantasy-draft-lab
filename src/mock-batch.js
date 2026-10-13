@@ -10,7 +10,7 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
  const cfg=CONFIG[mode];if(!cfg)throw Error("未知模式");
  if(players.length<cfg.teams*cfg.slots)throw Error("預測球員不足");
  if(!["normal","forced-first-raise","budget-aware","spend-target","paced-target","value-guard","top4-90","top4-100","top4-110","top4-value-100","cap-120","integrated-120"].includes(biddingMode))throw Error("未知競標模式");
- const random=rng(seed),ranked=rankProjections(players),yahoo=new Map(prices.map(p=>[key(p),p])),league=buildLeagueMarket(prices);
+ const random=rng(seed),ranked=rankProjections(players),yahoo=new Map(prices.map(p=>[key(p),p])),league=buildLeagueMarket(prices,mode);
  const rosters=Array.from({length:cfg.teams},()=>[]),styles=rosters.map(()=>.85+random()*.3);
  let state=fresh(mode),log=[],nominationTurn=0;
  while(state.picks.length<cfg.teams*cfg.slots){
@@ -72,7 +72,7 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    const reference=league.reference.get(key(p))??fallback;
    const target=leagueTarget(p,reference,league,mode);
    const yahooReference=league.reference.get(key(p));
-   const opening=yahooReference>10?Math.ceil(yahooReference):1;
+   const opening=biddingMode==="integrated-120"&&Number.isFinite(yahooReference)&&yahooReference>0?Math.max(1,Math.ceil(yahooReference)):yahooReference>10?Math.ceil(yahooReference):1;
    const yahooCap=(biddingMode==="cap-120"||biddingMode==="integrated-120")&&Number.isFinite(yahooReference)&&yahooReference>0?Math.max(1,Math.floor(yahooReference*1.2)):Infinity;
    if(opening>yahooCap)continue;
    // A nominator must be able to pay the opening bid, reserving $1 per unfilled slot.
@@ -112,7 +112,7 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
   const price=chosen.bid;
   state=addPick(state,{player:chosen.p.player,team:chosen.team,price});
   rosters[chosen.team-1].push(chosen.p);
-  log.push({player:chosen.p.player,team:chosen.team,nominator:chosen.nominator,opening:chosen.opening,price,biddingMode,reference:chosen.reference});
+  log.push({player:chosen.p.player,team:chosen.team,nominator:chosen.nominator,opening:chosen.opening,price,biddingMode,reference:chosen.reference,originalYahooReference:league.originalReference.get(key(chosen.p))??null,leaguePriceScale:league.scale});
  }
  const teams=rosters.map((roster,i)=>{
   const picks=state.picks.filter(p=>p.team===i+1);
