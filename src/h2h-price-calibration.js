@@ -18,7 +18,8 @@ export function auditH2HPriceSupply(prices=[],teams=14,slots=12,budget=200){
  const caps=adjusted.map(p=>p.cap).sort((a,b)=>b-a);
  const maxSupply=caps.slice(0,required).reduce((a,b)=>a+b,0);
  const minOpeningSupply=adjusted.map(p=>p.opening).sort((a,b)=>a-b).slice(0,required).reduce((a,b)=>a+b,0);
+ const incompatibleFloorCap=adjusted.filter(p=>p.opening>p.cap).length;
  return {required,available:adjusted.length,totalBudget:teams*budget,maxSupply,minOpeningSupply,
   enoughPlayers:adjusted.length>=required,budgetReachableByCap:maxSupply>=teams*budget,
-  minimumOpeningsAffordable:minOpeningSupply<=teams*budget};
+  minimumOpeningsAffordable:minOpeningSupply<=teams*budget,incompatibleFloorCap};
 }
