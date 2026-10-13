@@ -740,4 +740,8 @@ test("audit Yahoo 120% price-cap supply against league budget before tuning boos
  assert.ok(realizedRevenue<=realizedCaps);
  assert.ok(realizedCaps<=maximumUnconstrainedRevenue);
  assert.ok(maximumUnconstrainedRevenue>=realizedRevenue);
+ // This synthetic price curve has insufficient 120% cap supply to spend $200 per team.
+ // Guard the fixture assumption explicitly; never interpret under-spending as weak bidding.
+ assert.ok(maximumUnconstrainedRevenue<budget,"synthetic fixture no longer has a structural cap shortfall; revisit calibration interpretation");
+ assert.equal(realizedRevenue,maximumUnconstrainedRevenue,"seeded integrated auction should exhaust this fixture’s price-cap supply");
 });
