@@ -1,11 +1,12 @@
 // Experimental H2H price calibration. Does not mutate Yahoo Avg/Proj or auction outcomes.
 // Yahoo benchmark: 12 teams x 13 slots, $200/team. Target: 14 teams x 12 slots, $200/team.
 export const H2H_PRICE_SCALE=(200/12)/(200/13); // 13/12, per-roster-slot budget
+const oneDecimal=value=>Math.round((value+Number.EPSILON)*10)/10;
 export function adjustedH2HPrices(prices=[]){
  return prices.map(p=>{
   const avg=Number(p.avg)>0?Number(p.avg):0;
   const proj=Number(p.proj)>0?Number(p.proj):0;
-  const adjustedAvg=avg*H2H_PRICE_SCALE,adjustedProj=proj*H2H_PRICE_SCALE;
+  const adjustedAvg=oneDecimal(avg*H2H_PRICE_SCALE),adjustedProj=oneDecimal(proj*H2H_PRICE_SCALE);
   const reference=Math.max(adjustedAvg,adjustedProj);
   return {...p,adjustedAvg,adjustedProj,adjustedReference:reference,
    opening:reference>10?Math.max(1,Math.ceil(reference)):1,
