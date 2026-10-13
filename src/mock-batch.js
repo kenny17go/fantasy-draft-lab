@@ -75,20 +75,9 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    nominator=open.find(x=>x.team===seat);
   } while(!nominator);
   let chosen=null;
-  // Prefer the highest-ranked affordable high-reference player before any $1 opening.
-  // The reserve rule applies to the priority search as well as the actual nomination.
-  const priorityHigh=mode==="h2h"?available.find(p=>{
-   if(ranked.indexOf(p)>=cfg.teams*cfg.slots&&!(nominator.stats.remaining/nominator.stats.open<2))return false;
-   if(!canAddToRoster(rosters[nominator.team-1],p,mode))return false;
-   const ref=league.reference.get(key(p));
-   if(!(ref>10))return false;
-   const opening=Math.floor(ref)+1;
-   const cap=(biddingMode==="cap-120"||biddingMode==="integrated-120")?Math.max(1,Math.floor(ref*1.2)):Infinity;
-   return opening<=cap&&opening<=nominator.stats.maxBid;
-  }):null;
   // Nominate the highest-ranked remaining player that this team can legally
   // nominate and roster. No random nomination window.
-  for(const p of priorityHigh?[priorityHigh]:available){
+  for(const p of available){
    // Reserve outside-top-168 nominations for teams averaging strictly under $2 per open slot.
    // Use the original projection rank, not the shrinking available-player index.
    // Keep the post-168 reserve rule, but do not use the former $20/top-100 exception.
