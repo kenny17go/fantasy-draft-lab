@@ -113,14 +113,15 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    const nominatorMax=Math.max(opening,affordable.find(b=>b.team===nominator.team)?.bid??opening);
    const settlement=settleNomination(opening,nominator.team,nominatorMax,challengers);
    const winner=settlement.team,clearing=settlement.price;
-   chosen={p,reference,bid:clearing,team:winner,nominator:nominator.team,opening};
+   if(clearing<opening||clearing>yahooCap)throw Error("競價成交價違反提名價或 Yahoo 上限");
+   chosen={p,reference,bid:clearing,team:winner,nominator:nominator.team,opening,yahooCap};
    break;
   }
   if(!chosen)throw Error("無符合位置及預算限制的可競標球員");
   const price=chosen.bid;
   state=addPick(state,{player:chosen.p.player,team:chosen.team,price});
   rosters[chosen.team-1].push(chosen.p);
-  log.push({player:chosen.p.player,team:chosen.team,nominator:chosen.nominator,opening:chosen.opening,price,biddingMode,reference:chosen.reference});
+  log.push({player:chosen.p.player,team:chosen.team,nominator:chosen.nominator,opening:chosen.opening,price,biddingMode,reference:chosen.reference,yahooCap:Number.isFinite(chosen.yahooCap)?chosen.yahooCap:null});
  }
  const teams=rosters.map((roster,i)=>{
   const picks=state.picks.filter(p=>p.team===i+1);
