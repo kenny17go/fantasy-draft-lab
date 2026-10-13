@@ -81,6 +81,14 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    // Reserve outside-top-168 nominations for teams averaging strictly under $2 per open slot.
    // Use the original projection rank, not the shrinking available-player index.
    // Keep the post-168 reserve rule, but do not use the former $20/top-100 exception.
+   // When budget exceeds $20, prefer ranks 1-100; expand to 101-168 only if no legal top-100 nominee exists.
+   if(mode==="h2h"&&nominator.stats.remaining>20&&ranked.indexOf(p)>=100&&available.some(q=>{
+    if(ranked.indexOf(q)>=100||!canAddToRoster(rosters[nominator.team-1],q,mode))return false;
+    const ref=league.reference.get(key(q));
+    const opening=Number.isFinite(ref)&&ref>0?Math.floor(ref)+1:1;
+    const cap=(biddingMode==="cap-120"||biddingMode==="integrated-120")&&Number.isFinite(ref)&&ref>0?Math.max(1,Math.floor(ref*1.2)):Infinity;
+    return opening<=cap&&opening<=nominator.stats.maxBid;
+   }))continue;
    if(mode==="h2h"&&ranked.indexOf(p)>=cfg.teams*cfg.slots&&!(nominator.stats.remaining/nominator.stats.open<2))continue;
    if(!canAddToRoster(rosters[nominator.team-1],p,mode))continue;
    const eligible=open.filter(x=>canAddToRoster(rosters[x.team-1],p,mode));
