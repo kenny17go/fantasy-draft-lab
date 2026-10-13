@@ -88,7 +88,7 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    const reference=league.reference.get(key(p))??fallback;
    const target=leagueTarget(p,reference,league,mode);
    const yahooReference=league.reference.get(key(p));
-   const opening=yahooReference>10?Math.floor(yahooReference)+1:1;
+   const opening=Number.isFinite(yahooReference)&&yahooReference>0?Math.floor(yahooReference)+1:1;
    const yahooCap=(biddingMode==="cap-120"||biddingMode==="integrated-120")&&Number.isFinite(yahooReference)&&yahooReference>0?Math.max(1,Math.floor(yahooReference*1.2)):Infinity;
    if(opening>yahooCap)continue;
    // A nominator must be able to pay the opening bid, reserving $1 per unfilled slot.
@@ -123,8 +123,8 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
   }
   if(!chosen){
    const legal=available.filter(p=>canAddToRoster(rosters[nominator.team-1],p,mode));
-   const diagnostic={seed,mode,biddingMode,picks:state.picks.length,nominator:nominator.team,remaining:nominator.stats.remaining,open:nominator.stats.open,maxBid:nominator.stats.maxBid,available:available.length,rosterLegal:legal.length,affordable:legal.filter(p=>{const ref=league.reference.get(key(p));const opening=ref>10?Math.floor(ref)+1:1;const cap=(biddingMode==="cap-120"||biddingMode==="integrated-120")&&Number.isFinite(ref)&&ref>0?Math.max(1,Math.floor(ref*1.2)):Infinity;return opening<=cap&&opening<=nominator.stats.maxBid;}).length};
-   const remainingPriceRows=legal.map(p=>{const ref=league.reference.get(key(p));const opening=ref>10?Math.floor(ref)+1:1;return {player:p.player,rank:ranked.indexOf(p)+1,reference:ref??null,opening};});
+   const diagnostic={seed,mode,biddingMode,picks:state.picks.length,nominator:nominator.team,remaining:nominator.stats.remaining,open:nominator.stats.open,maxBid:nominator.stats.maxBid,available:available.length,rosterLegal:legal.length,affordable:legal.filter(p=>{const ref=league.reference.get(key(p));const opening=Number.isFinite(ref)&&ref>0?Math.floor(ref)+1:1;const cap=(biddingMode==="cap-120"||biddingMode==="integrated-120")&&Number.isFinite(ref)&&ref>0?Math.max(1,Math.floor(ref*1.2)):Infinity;return opening<=cap&&opening<=nominator.stats.maxBid;}).length};
+   const remainingPriceRows=legal.map(p=>{const ref=league.reference.get(key(p));const opening=Number.isFinite(ref)&&ref>0?Math.floor(ref)+1:1;return {player:p.player,rank:ranked.indexOf(p)+1,reference:ref??null,opening};});
    const oneDollarRemaining=remainingPriceRows.filter(p=>p.opening===1);
    const soldOneDollar=log.filter(p=>p.opening===1);
    diagnostic.priceAudit={remainingOneDollarCount:oneDollarRemaining.length,remainingHighOpeningCount:remainingPriceRows.length-oneDollarRemaining.length,cheapestRemaining:remainingPriceRows.slice().sort((a,b)=>a.opening-b.opening||a.rank-b.rank).slice(0,10),soldOneDollarCount:soldOneDollar.length,soldOneDollarByTeam:Object.fromEntries([...new Set(soldOneDollar.map(p=>p.team))].sort((a,b)=>a-b).map(team=>[team,soldOneDollar.filter(p=>p.team===team).length])),lastTenOneDollarSales:soldOneDollar.slice(-10).map(p=>({player:p.player,team:p.team,price:p.price,opening:p.opening,pick:log.indexOf(p)+1}))};
