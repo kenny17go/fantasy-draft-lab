@@ -117,7 +117,11 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    chosen={p,reference,bid:clearing,team:winner,nominator:nominator.team,opening,yahooCap};
    break;
   }
-  if(!chosen)throw Error("無符合位置及預算限制的可競標球員");
+  if(!chosen){
+   const legal=available.filter(p=>canAddToRoster(rosters[nominator.team-1],p,mode));
+   const diagnostic={seed,mode,biddingMode,picks:state.picks.length,nominator:nominator.team,remaining:nominator.stats.remaining,open:nominator.stats.open,maxBid:nominator.stats.maxBid,available:available.length,rosterLegal:legal.length,affordable:legal.filter(p=>{const ref=league.reference.get(key(p));const opening=ref>10?Math.floor(ref)+1:1;const cap=(biddingMode==="cap-120"||biddingMode==="integrated-120")&&Number.isFinite(ref)&&ref>0?Math.max(1,Math.floor(ref*1.2)):Infinity;return opening<=cap&&opening<=nominator.stats.maxBid;}).length};
+   throw Error("無符合位置及預算限制的可競標球員 "+JSON.stringify(diagnostic));
+  }
   const price=chosen.bid;
   state=addPick(state,{player:chosen.p.player,team:chosen.team,price});
   rosters[chosen.team-1].push(chosen.p);
