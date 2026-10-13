@@ -135,6 +135,10 @@ test("every nomination has a funded opening bid and either the nominator or a ch
     const expected=priceReference>10?Math.floor(priceReference)+1:1;
     assert.equal(sale.opening,expected);
     assert.ok(sale.price>=sale.opening);
+    if(mode==="h2h" && priceReference>10){
+     assert.ok(sale.opening>reference.avg);
+     assert.ok(sale.opening>calibratedProj);
+    }
     assert.ok(sale.nominator>=1&&sale.nominator<=14);
     const n=sale.nominator-1;
     const remaining=CONFIG[mode].budget-spending[n];
