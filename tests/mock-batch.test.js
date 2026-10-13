@@ -760,3 +760,15 @@ test("nomination settlement: uncontested, outbid, counterbid and tied max",()=>{
  assert.deepEqual(settleNomination(1,1,1,[]),{team:1,price:1,raised:false});
  assert.throws(()=>settleNomination(43,1,42,[]));
 });
+
+test("H2H capped auction records no cap violation",()=>{
+ const prices=players.map((p,i)=>({player:p.player,avg:i<20?60-i:Math.max(1,18-i*.07),proj:i<20?62-i:Math.max(1,19-i*.07)}));
+ for(const seed of [1,7,19]){
+  const run=runFullMock(players,prices,"h2h",seed,"normal","integrated-120");
+  assert.equal(run.log.length,168);
+  for(const sale of run.log){
+   assert.ok(sale.price>=sale.opening);
+   if(sale.yahooCap!==null)assert.ok(sale.price<=sale.yahooCap);
+  }
+ }
+});
