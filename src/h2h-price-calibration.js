@@ -8,7 +8,7 @@ export function adjustedH2HPrices(prices=[]){
   const adjustedAvg=avg*H2H_PRICE_SCALE,adjustedProj=proj*H2H_PRICE_SCALE;
   const reference=Math.max(adjustedAvg,adjustedProj);
   return {...p,adjustedAvg,adjustedProj,adjustedReference:reference,
-   opening:reference>0?Math.max(1,Math.ceil(reference)):1,
+   opening:reference>10?Math.max(1,Math.ceil(reference)):1,
    cap:reference>0?Math.max(1,Math.floor(reference*1.2)):1};
  });
 }
