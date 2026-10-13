@@ -1,23 +1,12 @@
 // Initial league-specific calibration, not observed auction transaction data.
 // Yahoo's 12x13 reference differs from this league's 14x12 format.
 const key=p=>String(p.player||"").trim().toLocaleLowerCase();
-// Budget-demand scaling: 14 teams x $200 vs Yahoo's 12 teams x $200.
-// This is an estimated league adjustment, not an observed Yahoo Avg/Proj quote.
-export function leaguePriceScale(mode="h2h"){
- return mode==="h2h"?14/12:1;
-}
-export function buildLeagueMarket(prices=[],mode="h2h"){
- const scale=leaguePriceScale(mode);
- const valid=prices.map(p=>{
-  const rawAvg=Number(p.avg)>0?Number(p.avg):0;
-  const rawProj=Number(p.proj)>0?Number(p.proj):0;
-  return {...p,rawAvg,rawProj,adjustedAvg:rawAvg*scale,adjustedProj:rawProj*scale,reference:Math.max(rawAvg,rawProj)*scale};
- }).filter(p=>p.reference>0).sort((a,b)=>b.reference-a.reference);
+export function buildLeagueMarket(prices=[]){
+ const valid=prices.map(p=>({...p,reference:Math.max(Number(p.avg)>0?Number(p.avg):0,Number(p.proj)>0?Number(p.proj):0)})).filter(p=>p.reference>0).sort((a,b)=>b.reference-a.reference);
  const ranks=new Map(valid.map((p,i)=>[key(p),i+1]));
- const avg=new Map(valid.map(p=>[key(p),p.adjustedAvg]));
+ const avg=new Map(valid.map(p=>[key(p),Number(p.avg)>0?Number(p.avg):0]));
  const reference=new Map(valid.map(p=>[key(p),p.reference]));
- const originalReference=new Map(valid.map(p=>[key(p),Math.max(p.rawAvg,p.rawProj)]));
- return {ranks,avg,reference,originalReference,scale};
+ return {ranks,avg,reference};
 }
 export function leagueTarget(player,reference,market,mode="h2h"){
  const yahooReference=market.reference.get(key(player));
