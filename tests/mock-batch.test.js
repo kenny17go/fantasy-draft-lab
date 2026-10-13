@@ -1,7 +1,7 @@
 import {readFileSync} from "node:fs";
 import test from "node:test";
 import assert from "node:assert/strict";
-import {runFullMock,runMockBatch} from "../src/mock-batch.js";
+import {runFullMock,runMockBatch,settleNomination} from "../src/mock-batch.js";
 import {CONFIG} from "../src/model.js";
 import {rankProjections} from "../src/projections.js";
 const players=Array.from({length:210},(_,i)=>({player:"Synthetic "+i,positions:["PG","SG","SF","PF","C"],gp:70,pts:30-i*.08,reb:7,ast:5,stl:1.2,blk:.8,three:2,tov:2,fgm:8,fga:16,ftm:4,fta:5}));
@@ -750,4 +750,13 @@ test("audit Yahoo 120% price-cap supply against league budget before tuning boos
  // Guard the fixture assumption explicitly; never interpret under-spending as weak bidding.
  assert.ok(maximumUnconstrainedRevenue<budget,"synthetic fixture no longer has a structural cap shortfall; revisit calibration interpretation");
  assert.equal(realizedRevenue,maximumUnconstrainedRevenue,"seeded integrated auction should exhaust this fixture’s price-cap supply");
+});
+
+test("nomination settlement: uncontested, outbid, counterbid and tied max",()=>{
+ assert.deepEqual(settleNomination(43,1,80,[]),{team:1,price:43,raised:false});
+ assert.deepEqual(settleNomination(43,1,50,[{team:2,bid:60}]),{team:2,price:51,raised:true});
+ assert.deepEqual(settleNomination(43,1,80,[{team:2,bid:60}]),{team:1,price:61,raised:true});
+ assert.deepEqual(settleNomination(43,1,60,[{team:2,bid:60}]),{team:1,price:60,raised:true});
+ assert.deepEqual(settleNomination(1,1,1,[]),{team:1,price:1,raised:false});
+ assert.throws(()=>settleNomination(43,1,42,[]));
 });
