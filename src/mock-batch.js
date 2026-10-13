@@ -7,6 +7,17 @@ import {evaluateDraft} from "./evaluation.js";
 const key=p=>p.player.trim().toLowerCase();
 const cats=["fgPct","ftPct","three","pts","reb","ast","stl","blk","tov"];
 function rng(seed){let s=seed>>>0;return ()=>((s=(Math.imul(s,1664525)+1013904223)>>>0)/4294967296);}
+// Second-price-style ascending auction with the nominator holding the opening bid.
+// All maximum bids must already respect roster budgets and any price cap.
+export function settleNomination(opening,nominator,nominatorMax,challengers=[]){
+ if(!Number.isInteger(opening)||opening<1||!Number.isInteger(nominatorMax)||nominatorMax<opening)throw Error("無效提名價或提名者上限");
+ const raises=challengers.filter(x=>x.team!==nominator&&Number.isInteger(x.bid)&&x.bid>opening);
+ if(!raises.length)return {team:nominator,price:opening,raised:false};
+ const bids=[{team:nominator,bid:nominatorMax},...raises].sort((a,b)=>b.bid-a.bid||(a.team===nominator?-1:b.team===nominator?1:a.team-b.team));
+ const winner=bids[0],runnerUp=bids[1];
+ const price=Math.min(winner.bid,Math.max(opening,runnerUp.bid+1));
+ return {team:winner.team,price,raised:true};
+}
 export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal",biddingMode="normal",nominationOrder="round-robin"){
  const cfg=CONFIG[mode];if(!cfg)throw Error("未知模式");
  if(players.length<cfg.teams*cfg.slots)throw Error("預測球員不足");
@@ -99,19 +110,9 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
     challengers.push({team:challenger.team,bid:opening+1});
    }
    challengers.sort((a,b)=>b.bid-a.bid||a.team-b.team);
-   let winner=nominator.team,clearing=opening;
-   if(challengers.length){
-    // The nominator already committed to opening, and may counterbid.
-    // A challenger must beat the nominator, not merely the opening bid.
-    const nominatorMax=Math.max(opening,affordable.find(b=>b.team===nominator.team)?.bid??opening);
-    const contenders=[{team:nominator.team,bid:nominatorMax},...challengers]
-      .sort((a,b)=>b.bid-a.bid||(a.team===nominator.team?-1:b.team===nominator.team?1:a.team-b.team));
-    const best=contenders[0],runnerUp=contenders[1];
-    winner=best.team;
-    clearing=Math.min(best.bid,Math.max(opening,runnerUp.bid+1));
-    // If tied at the maximum, the earlier incumbent bid wins at that maximum.
-    if(clearing>best.bid)throw Error("競標成交價超過合法上限");
-   }
+   const nominatorMax=Math.max(opening,affordable.find(b=>b.team===nominator.team)?.bid??opening);
+   const settlement=settleNomination(opening,nominator.team,nominatorMax,challengers);
+   const winner=settlement.team,clearing=settlement.price;
    chosen={p,reference,bid:clearing,team:winner,nominator:nominator.team,opening};
    break;
   }
