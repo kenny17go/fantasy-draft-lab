@@ -1,4 +1,5 @@
 import {buildLeagueMarket,leagueTarget,minimumLeagueBid} from "./league-market.js";
+import {adjustedH2HPrices} from "./h2h-price-calibration.js";
 import {CONFIG,addPick,fresh,teamStats} from "./model.js";
 import {rankProjections,teamCategories} from "./projections.js";
 import {canAddToRoster} from "./roster.js";
@@ -10,7 +11,7 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
  const cfg=CONFIG[mode];if(!cfg)throw Error("未知模式");
  if(players.length<cfg.teams*cfg.slots)throw Error("預測球員不足");
  if(!["normal","forced-first-raise","budget-aware","spend-target","paced-target","value-guard","top4-90","top4-100","top4-110","top4-value-100","cap-120","integrated-120"].includes(biddingMode))throw Error("未知競標模式");
- const random=rng(seed),ranked=rankProjections(players),yahoo=new Map(prices.map(p=>[key(p),p])),league=buildLeagueMarket(prices);
+ const random=rng(seed),ranked=rankProjections(players),yahoo=new Map(prices.map(p=>[key(p),p])),calibrated=mode==="h2h"?adjustedH2HPrices(prices):prices,league=buildLeagueMarket(calibrated.map(p=>({...p,avg:p.adjustedAvg??p.avg,proj:p.adjustedProj??p.proj})));
  const rosters=Array.from({length:cfg.teams},()=>[]),styles=rosters.map(()=>.85+random()*.3);
  let state=fresh(mode),log=[],nominationTurn=0;
  while(state.picks.length<cfg.teams*cfg.slots){
@@ -72,7 +73,7 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    const reference=league.reference.get(key(p))??fallback;
    const target=leagueTarget(p,reference,league,mode);
    const yahooReference=league.reference.get(key(p));
-   const opening=yahooReference>10?Math.ceil(yahooReference):1;
+   const opening=yahooReference>10?Math.floor(yahooReference)+1:1;
    const yahooCap=(biddingMode==="cap-120"||biddingMode==="integrated-120")&&Number.isFinite(yahooReference)&&yahooReference>0?Math.max(1,Math.floor(yahooReference*1.2)):Infinity;
    if(opening>yahooCap)continue;
    // A nominator must be able to pay the opening bid, reserving $1 per unfilled slot.
@@ -100,10 +101,16 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    challengers.sort((a,b)=>b.bid-a.bid||a.team-b.team);
    let winner=nominator.team,clearing=opening;
    if(challengers.length){
-    const best=challengers[0];
-    const second=Math.max(opening,challengers[1]?.bid??0,affordable.find(b=>b.team===nominator.team)?.bid??0);
+    // The nominator already committed to opening, and may counterbid.
+    // A challenger must beat the nominator, not merely the opening bid.
+    const nominatorMax=Math.max(opening,affordable.find(b=>b.team===nominator.team)?.bid??opening);
+    const contenders=[{team:nominator.team,bid:nominatorMax},...challengers]
+      .sort((a,b)=>b.bid-a.bid||(a.team===nominator.team?-1:b.team===nominator.team?1:a.team-b.team));
+    const best=contenders[0],runnerUp=contenders[1];
     winner=best.team;
-    clearing=Math.min(best.bid,second+1);
+    clearing=Math.min(best.bid,Math.max(opening,runnerUp.bid+1));
+    // If tied at the maximum, the earlier incumbent bid wins at that maximum.
+    if(clearing>best.bid)throw Error("競標成交價超過合法上限");
    }
    chosen={p,reference,bid:clearing,team:winner,nominator:nominator.team,opening};
    break;
