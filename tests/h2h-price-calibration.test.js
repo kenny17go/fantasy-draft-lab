@@ -11,7 +11,8 @@ test("H2H calibration preserves original Yahoo Avg and Proj",()=>{
  assert.equal(adjusted[0].adjustedAvg,32.5);
  assert.equal(adjusted[0].adjustedProj,34.7);
  assert.equal(adjusted[0].opening,35);
- assert.equal(adjusted[0].cap,41);\n assert.equal(adjusted[0].adjustedReference,34.7);
+ assert.equal(adjusted[0].cap,41);
+ assert.equal(adjusted[0].adjustedReference,34.7);
  assert.equal(adjusted[1].opening,1);
  assert.equal(adjusted[1].cap,1);
  assert.equal(adjustedH2HPrices([{player:"C",avg:4,proj:4}])[0].opening,1);
