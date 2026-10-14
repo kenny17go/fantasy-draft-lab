@@ -5,7 +5,7 @@ const prices=players.map((p,i)=>({player:p.player,avg:i<5?75-i*5:i<18?49-(i-5)*2
 const avg=x=>x.length?x.reduce((a,b)=>a+b,0)/x.length:null;
 test("compare normal and competitive AI: 30 paired seeds",()=>{
  const result={};
- for(const mode of ["normal","competitive-ai"]){
+ for(const mode of ["normal","competitive-ai","competitive-balanced"]){
   const runs=[],failures=[];
   for(let seed=1;seed<=30;seed++){
    try{
