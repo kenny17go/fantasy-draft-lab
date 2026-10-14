@@ -21,7 +21,7 @@ export function settleNomination(opening,nominator,nominatorMax,challengers=[]){
 export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal",biddingMode="normal",nominationOrder="round-robin"){
  const cfg=CONFIG[mode];if(!cfg)throw Error("未知模式");
  if(players.length<cfg.teams*cfg.slots)throw Error("預測球員不足");
- if(!["normal","forced-first-raise","budget-aware","spend-target","paced-target","value-guard","top4-90","top4-100","top4-110","top4-value-100","cap-120","integrated-120","competitive-ai","competitive-balanced","adaptive-ai","adaptive-v4"].includes(biddingMode))throw Error("未知競標模式");
+ if(!["normal","forced-first-raise","budget-aware","spend-target","paced-target","value-guard","top4-90","top4-100","top4-110","top4-value-100","cap-120","integrated-120","competitive-ai","competitive-balanced","adaptive-ai","adaptive-v4","auction-v5"].includes(biddingMode))throw Error("未知競標模式");
  const random=rng(seed),ranked=rankProjections(players),yahoo=new Map(prices.map(p=>[key(p),p])),calibrated=mode==="h2h"?adjustedH2HPrices(prices):prices,league=buildLeagueMarket(calibrated.map(p=>({...p,avg:p.adjustedAvg??p.avg,proj:p.adjustedProj??p.proj})));
  const rosters=Array.from({length:cfg.teams},()=>[]),styles=rosters.map(()=>.85+random()*.3);
  let state=fresh(mode),log=[],nominationTurn=0;
@@ -84,7 +84,7 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    const reference=league.reference.get(key(p))??fallback;
    const target=leagueTarget(p,reference,league,mode);
    const yahooReference=league.reference.get(key(p));
-   const opening=(biddingMode==="competitive-ai"||biddingMode==="competitive-balanced"||biddingMode==="adaptive-ai"||biddingMode==="adaptive-v4")?1:(yahooReference>10?Math.floor(yahooReference)+1:1);
+   const opening=(biddingMode==="competitive-ai"||biddingMode==="competitive-balanced"||biddingMode==="adaptive-ai"||biddingMode==="adaptive-v4"||biddingMode==="auction-v5")?1:(yahooReference>10?Math.floor(yahooReference)+1:1);
    const yahooCap=(biddingMode==="cap-120"||biddingMode==="integrated-120")&&Number.isFinite(yahooReference)&&yahooReference>0?Math.max(1,Math.floor(yahooReference*1.2)):Infinity;
    if(opening>yahooCap)continue;
    // A nominator must be able to pay the opening bid, reserving $1 per unfilled slot.
@@ -132,7 +132,15 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
     const reserveRelease=adaptiveV4?Math.min(optionalReserve,Math.round(relativeEdge)):0;
     const v4Cap=adaptiveV4?Math.max(1,Math.min(stats.maxBid,stats.remaining-Math.max(futureSlots,futureCost-reserveRelease))):adaptiveCap;
     const v4Valuation=adaptiveV4?Math.max(1,Math.round(playerValue*factor*rosterNeed)):0;
-    const willingness=adaptive?Math.max(1,Math.min(adaptiveV4?v4Cap:adaptiveCap,adaptiveV4?v4Valuation:Math.round(playerValue*factor*rosterNeed))):Math.max(1,Math.min(playerBudgetLimit,Math.round(target*factor*categoryNeeds.get(team)*budgetFactors.get(team)*qualityFactor*balancedMultiplier)));
+    // V5 uses the player's calibrated Yahoo reference as valuation anchor.
+    // Cash only enforces legal affordability, not an invented future reserve.
+    // Team-specific needs affect value through scarce positional alternatives.
+    const v5=biddingMode==="auction-v5";
+    const v5PlayerValue=Math.max(1,Number.isFinite(yahooReference)&&yahooReference>0?yahooReference:reference);
+    const v5PositionCoverage=rosters[team-1].filter(q=>q.positions.some(pos=>p.positions.includes(pos))).length;
+    const v5PositionNeed=1+Math.min(.12,Math.max(0,2-v5PositionCoverage)*.04);
+    const v5Willingness=Math.max(1,Math.round(v5PlayerValue*factor*v5PositionNeed));
+    const willingness=v5?Math.min(stats.maxBid,v5Willingness):adaptive?Math.max(1,Math.min(adaptiveV4?v4Cap:adaptiveCap,adaptiveV4?v4Valuation:Math.round(playerValue*factor*rosterNeed))):Math.max(1,Math.min(playerBudgetLimit,Math.round(target*factor*categoryNeeds.get(team)*budgetFactors.get(team)*qualityFactor*balancedMultiplier)));
     return {team,bid:Math.max(1,Math.min(stats.maxBid,willingness,yahooCap))};
    }).sort((a,b)=>b.bid-a.bid||a.team-b.team);
    const affordable=bids.filter(b=>b.bid>=1);
@@ -150,9 +158,12 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    challengers.sort((a,b)=>b.bid-a.bid||a.team-b.team);
    const nominatorMax=Math.max(opening,affordable.find(b=>b.team===nominator.team)?.bid??opening);
    const settlement=settleNomination(opening,nominator.team,nominatorMax,challengers);
+   const orderedWillingness=affordable.map(x=>x.bid).sort((a,b)=>b-a);
+   const highestWillingness=orderedWillingness[0]??opening;
+   const secondWillingness=orderedWillingness[1]??opening;
    const winner=settlement.team,clearing=settlement.price;
    if(clearing<opening||clearing>yahooCap)throw Error("競價成交價違反提名價或 Yahoo 上限");
-   chosen={p,reference,bid:clearing,team:winner,nominator:nominator.team,opening,yahooCap};
+   chosen={p,reference,bid:clearing,team:winner,nominator:nominator.team,opening,yahooCap,highestWillingness,secondWillingness};
    break;
   }
   if(!chosen)throw Error("無符合位置及預算限制的可競標球員");
