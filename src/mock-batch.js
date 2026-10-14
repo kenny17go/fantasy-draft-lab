@@ -21,7 +21,7 @@ export function settleNomination(opening,nominator,nominatorMax,challengers=[]){
 export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal",biddingMode="normal",nominationOrder="round-robin"){
  const cfg=CONFIG[mode];if(!cfg)throw Error("未知模式");
  if(players.length<cfg.teams*cfg.slots)throw Error("預測球員不足");
- if(!["normal","forced-first-raise","budget-aware","spend-target","paced-target","value-guard","top4-90","top4-100","top4-110","top4-value-100","cap-120","integrated-120","competitive-ai","competitive-balanced","adaptive-ai"].includes(biddingMode))throw Error("未知競標模式");
+ if(!["normal","forced-first-raise","budget-aware","spend-target","paced-target","value-guard","top4-90","top4-100","top4-110","top4-value-100","cap-120","integrated-120","competitive-ai","competitive-balanced","adaptive-ai","adaptive-v4"].includes(biddingMode))throw Error("未知競標模式");
  const random=rng(seed),ranked=rankProjections(players),yahoo=new Map(prices.map(p=>[key(p),p])),calibrated=mode==="h2h"?adjustedH2HPrices(prices):prices,league=buildLeagueMarket(calibrated.map(p=>({...p,avg:p.adjustedAvg??p.avg,proj:p.adjustedProj??p.proj})));
  const rosters=Array.from({length:cfg.teams},()=>[]),styles=rosters.map(()=>.85+random()*.3);
  let state=fresh(mode),log=[],nominationTurn=0;
@@ -84,7 +84,7 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    const reference=league.reference.get(key(p))??fallback;
    const target=leagueTarget(p,reference,league,mode);
    const yahooReference=league.reference.get(key(p));
-   const opening=(biddingMode==="competitive-ai"||biddingMode==="competitive-balanced"||biddingMode==="adaptive-ai")?1:(yahooReference>10?Math.floor(yahooReference)+1:1);
+   const opening=(biddingMode==="competitive-ai"||biddingMode==="competitive-balanced"||biddingMode==="adaptive-ai"||biddingMode==="adaptive-v4")?1:(yahooReference>10?Math.floor(yahooReference)+1:1);
    const yahooCap=(biddingMode==="cap-120"||biddingMode==="integrated-120")&&Number.isFinite(yahooReference)&&yahooReference>0?Math.max(1,Math.floor(yahooReference*1.2)):Infinity;
    if(opening>yahooCap)continue;
    // A nominator must be able to pay the opening bid, reserving $1 per unfilled slot.
@@ -106,7 +106,8 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
     const playerBudgetLimit=balanced?Math.min(stats.maxBid,Math.max(1,Math.floor(discretionary*(rosterCount===0?.38:rosterCount<4?.55:.75)+priceShare))):stats.maxBid;
     // Adaptive AI: derive its maximum willingness from actual player value,
     // affordable alternatives, and remaining roster budget. No blanket premium.
-    const adaptive=biddingMode==="adaptive-ai";
+    const adaptive=biddingMode==="adaptive-ai"||biddingMode==="adaptive-v4";
+    const adaptiveV4=biddingMode==="adaptive-v4";
     const candidatePool=adaptive?available.filter(q=>canAddToRoster(rosters[team-1],q,mode)):null;
     const futurePool=adaptive?candidatePool.filter(q=>q.player!==p.player).map(q=>league.reference.get(key(q))??Math.max(1,Math.round(2+Math.max(0,q.total)*3))).filter(v=>v>0).sort((a,b)=>b-a):null;
     const futureSlots=Math.max(0,stats.open-1);
@@ -122,7 +123,16 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
     // expected cost of viable future alternatives, bounded by cash on hand.
     const futureCost=adaptive?Math.min(stats.remaining-1,Math.max(futureSlots,Math.round(futureSlots*Math.min(replacementValue,Math.max(1,stats.remaining/Math.max(1,stats.open)))))):0;
     const adaptiveCap=adaptive?Math.max(1,Math.min(stats.maxBid,stats.remaining-futureCost)):playerBudgetLimit;
-    const willingness=adaptive?Math.max(1,Math.min(adaptiveCap,Math.round(playerValue*factor*rosterNeed))):Math.max(1,Math.min(playerBudgetLimit,Math.round(target*factor*categoryNeeds.get(team)*budgetFactors.get(team)*qualityFactor*balancedMultiplier)));
+    // V4: preserve the legal $1-per-slot floor; release optional reserves
+    // when a player is substantially more valuable than the best alternative.
+    // No uniform bid multiplier or hard-coded top-four spending cap.
+    const alternative=adaptiveV4?(futurePool[0]??1):0;
+    const relativeEdge=adaptiveV4?Math.max(0,playerValue-alternative):0;
+    const optionalReserve=adaptiveV4?Math.max(0,futureCost-futureSlots):0;
+    const reserveRelease=adaptiveV4?Math.min(optionalReserve,Math.round(relativeEdge)):0;
+    const v4Cap=adaptiveV4?Math.max(1,Math.min(stats.maxBid,stats.remaining-Math.max(futureSlots,futureCost-reserveRelease))):adaptiveCap;
+    const v4Valuation=adaptiveV4?Math.max(1,Math.round(playerValue*factor*rosterNeed)):0;
+    const willingness=adaptive?Math.max(1,Math.min(adaptiveV4?v4Cap:adaptiveCap,adaptiveV4?v4Valuation:Math.round(playerValue*factor*rosterNeed))):Math.max(1,Math.min(playerBudgetLimit,Math.round(target*factor*categoryNeeds.get(team)*budgetFactors.get(team)*qualityFactor*balancedMultiplier)));
     return {team,bid:Math.max(1,Math.min(stats.maxBid,willingness,yahooCap))};
    }).sort((a,b)=>b.bid-a.bid||a.team-b.team);
    const affordable=bids.filter(b=>b.bid>=1);
