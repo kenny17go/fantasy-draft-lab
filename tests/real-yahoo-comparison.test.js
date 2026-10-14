@@ -10,7 +10,7 @@ test("real Yahoo 2026-10-10 snapshot: 30 paired seeds per mode",()=>{
  const matched=players.filter(p=>pmap.has(p.player.toLowerCase())).length;
  const refs=adjustedH2HPrices(prices).map(p=>p.adjustedReference).filter(Number.isFinite).sort((a,b)=>b-a);
  const output={source:"User Yahoo export backup",sourceDate:snapshot.sourceDate,projections:players.length,prices:prices.length,matched,unmatched:players.length-matched,referenceTop168Sum:refs.slice(0,168).reduce((a,b)=>a+b,0),modes:{}};
- for(const mode of ["normal","competitive-ai","competitive-balanced"]){
+ for(const mode of ["normal","competitive-ai","competitive-balanced","adaptive-ai"]){
   const runs=[],failures=[];
   for(let seed=1;seed<=30;seed++){
    try{
