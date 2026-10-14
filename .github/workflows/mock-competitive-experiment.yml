@@ -1,0 +1,20 @@
+name: Mock Competitive AI Experiment
+on:
+  push:
+    branches:
+      - experiment/mock-diagnostic-v1-20261014
+  workflow_dispatch:
+jobs:
+  comparison:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Competitive AI paired 30-seed comparison
+        run: node --test tests/competitive-ai-comparison.test.js
+      - name: Baseline auction diagnostics
+        run: node --test tests/mock-diagnostic-v1.test.js
