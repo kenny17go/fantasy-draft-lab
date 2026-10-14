@@ -29,6 +29,11 @@ jobs:
         run: |
           set -o pipefail
           node --test tests/v5-price-reasonableness.test.js | tee v5-price-validation.txt
+      - name: V5 root cause diagnostics
+        shell: bash
+        run: |
+          set -o pipefail
+          node --test tests/v5-root-cause-diagnostics.test.js | tee v5-root-cause.txt
       - name: Baseline auction diagnostics
         shell: bash
         run: |
@@ -40,11 +45,11 @@ jobs:
         run: |
           echo '## Competitive AI experiment' >> "$GITHUB_STEP_SUMMARY"
           echo 'Synthetic Yahoo-like prices; not real Yahoo auction results.' >> "$GITHUB_STEP_SUMMARY"
-          for file in competitive-ai-result.txt real-yahoo-result.txt v5-price-validation.txt baseline-result.txt; do
+          for file in competitive-ai-result.txt real-yahoo-result.txt v5-price-validation.txt v5-root-cause.txt baseline-result.txt; do
             if test -f "$file"; then
               echo "### $file" >> "$GITHUB_STEP_SUMMARY"
               echo '~~~text' >> "$GITHUB_STEP_SUMMARY"
-              grep -E 'COMPETITIVE_AI_COMPARISON|REAL_YAHOO_2026_COMPARISON|V5_PRICE_REASONABLENESS|MOCK_DIAGNOSTIC_V1|not ok|error:' "$file" | head -c 30000 >> "$GITHUB_STEP_SUMMARY" || true
+              grep -E 'COMPETITIVE_AI_COMPARISON|REAL_YAHOO_2026_COMPARISON|V5_PRICE_REASONABLENESS|V5_ROOT_CAUSE_DIAGNOSTICS|MOCK_DIAGNOSTIC_V1|not ok|error:' "$file" | head -c 30000 >> "$GITHUB_STEP_SUMMARY" || true
               echo >> "$GITHUB_STEP_SUMMARY"
               echo '~~~' >> "$GITHUB_STEP_SUMMARY"
             fi
@@ -58,5 +63,6 @@ jobs:
             competitive-ai-result.txt
             real-yahoo-result.txt
             v5-price-validation.txt
+            v5-root-cause.txt
             baseline-result.txt
           if-no-files-found: warn
