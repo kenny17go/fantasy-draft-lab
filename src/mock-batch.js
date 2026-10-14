@@ -163,14 +163,14 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    const secondWillingness=orderedWillingness[1]??opening;
    const winner=settlement.team,clearing=settlement.price;
    if(clearing<opening||clearing>yahooCap)throw Error("競價成交價違反提名價或 Yahoo 上限");
-   chosen={p,reference,bid:clearing,team:winner,nominator:nominator.team,opening,yahooCap,highestWillingness,secondWillingness};
+   chosen={p,reference,bid:clearing,team:winner,nominator:nominator.team,opening,yahooCap,highestWillingness,secondWillingness,eligibleTeams:eligible.length,bidDiagnostics:affordable.map(b=>({team:b.team,willingness:b.bid,remaining:eligible.find(x=>x.team===b.team).stats.remaining,maxBid:eligible.find(x=>x.team===b.team).stats.maxBid,open:eligible.find(x=>x.team===b.team).stats.open})),nominationIndex:state.picks.length+1};
    break;
   }
   if(!chosen)throw Error("無符合位置及預算限制的可競標球員");
   const price=chosen.bid;
   state=addPick(state,{player:chosen.p.player,team:chosen.team,price});
   rosters[chosen.team-1].push(chosen.p);
-  log.push({player:chosen.p.player,team:chosen.team,nominator:chosen.nominator,opening:chosen.opening,price,biddingMode,reference:chosen.reference,highestWillingness:chosen.highestWillingness,secondWillingness:chosen.secondWillingness,yahooCap:Number.isFinite(chosen.yahooCap)?chosen.yahooCap:null});
+  log.push({player:chosen.p.player,team:chosen.team,nominator:chosen.nominator,opening:chosen.opening,price,biddingMode,reference:chosen.reference,nominationIndex:chosen.nominationIndex,eligibleTeams:chosen.eligibleTeams,bidDiagnostics:chosen.bidDiagnostics,highestWillingness:chosen.highestWillingness,secondWillingness:chosen.secondWillingness,yahooCap:Number.isFinite(chosen.yahooCap)?chosen.yahooCap:null});
  }
  const teams=rosters.map((roster,i)=>{
   const picks=state.picks.filter(p=>p.team===i+1);
