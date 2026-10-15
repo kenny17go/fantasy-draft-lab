@@ -84,7 +84,12 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    const reference=league.reference.get(key(p))??fallback;
    const target=leagueTarget(p,reference,league,mode);
    const yahooReference=league.reference.get(key(p));
-   const opening=(biddingMode==="competitive-ai"||biddingMode==="competitive-balanced"||biddingMode==="adaptive-ai"||biddingMode==="adaptive-v4"||biddingMode==="auction-v5")?1:(yahooReference>10?Math.floor(yahooReference)+1:1);
+   // The reference-based opening is a preference, not a minimum legal sale price.
+    // When no team can afford that opening while reserving $1 per empty slot,
+    // use the legal $1 opening; keep Yahoo caps and all other bid limits intact.
+    const referenceOpening=(biddingMode==="competitive-ai"||biddingMode==="competitive-balanced"||biddingMode==="adaptive-ai"||biddingMode==="adaptive-v4"||biddingMode==="auction-v5")?1:(yahooReference>10?Math.floor(yahooReference)+1:1);
+    const anyTeamCanFundReferenceOpening=eligible.some(x=>x.stats.maxBid>=referenceOpening);
+    const opening=anyTeamCanFundReferenceOpening?referenceOpening:1;
    const yahooCap=(biddingMode==="cap-120"||biddingMode==="integrated-120")&&Number.isFinite(yahooReference)&&yahooReference>0?Math.max(1,Math.floor(yahooReference*1.2)):Infinity;
    if(opening>yahooCap)continue;
    // A nominator must be able to pay the opening bid, reserving $1 per unfilled slot.
