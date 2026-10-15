@@ -25,7 +25,7 @@ export function validatePrices(prices){
 }
 export function readBackup(text){
  const b=JSON.parse(text);
- if(b?.format!=="fantasy-draft-lab-v5-preview-backup"||b.version!==1||!b.leagues)throw Error("不是支援的完整備份格式");
+ if(!["fantasy-draft-lab-backup","fantasy-draft-lab-v5-preview-backup"].includes(b?.format)||b.version!==1||!b.leagues)throw Error("不是支援的完整備份格式");
  return {h2h:validateState(b.leagues.h2h,"h2h"),roto:validateState(b.leagues.roto,"roto"),players:validatePlayers(b.projections),prices:validatePrices(b.prices??[])};
 }
 
