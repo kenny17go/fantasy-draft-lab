@@ -1,7 +1,7 @@
 import {readMockArchive,writeMockArchive,deleteMockArchive} from "./mock-storage.js";
 import {recommendMockTeams} from "./mock-recommendations.js";
 import {parseYahooPrices,mergeYahooPrices} from "./yahoo-prices.js";
-import {makeBackup,readBackup} from "./backup.js";
+import {makeBackup,readBackup,backupToCsv} from "./backup.js";
 import {parseYahooMobileText,mergeProjectionPlayers} from "./yahoo-mobile.js";
 import {yahooProjectedToCsv} from "./yahoo-import.js";
 import {parseProjections,rankProjections} from "./projections.js";
@@ -147,6 +147,7 @@ $("yahoo-paste-import").addEventListener("click",()=>{try{const source=$("yahoo-
 
 const fullBackupKey="fantasy-draft-lab:v1:prices";
 function downloadJson(data,name){const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+$("export-all-csv").addEventListener("click",()=>{try{const prices=JSON.parse(localStorage.getItem(fullBackupKey)||"[]");const csv=backupToCsv(makeBackup(load("h2h"),load("roto"),projectionPlayers,prices));const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="fantasy-draft-lab-full-data.csv";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);feedback("CSV 已匯出；完整還原請使用 JSON 備份");}catch(e){feedback("CSV 匯出失敗："+e.message);}});
 $("export-all").addEventListener("click",()=>{try{const prices=JSON.parse(localStorage.getItem(fullBackupKey)||"[]");downloadJson(makeBackup(load("h2h"),load("roto"),projectionPlayers,prices),"fantasy-draft-lab-full-backup.json");feedback("完整備份已產生：H2H、ROTO、球員預測及價格。");}catch(err){feedback("備份失敗："+err.message);}});
 $("import-all").addEventListener("change",async e=>{const file=e.target.files[0];if(!file)return;try{const data=readBackup(await file.text());if(!confirm("將以完整備份覆蓋本機兩個聯盟、預測及價格資料。確定還原？"))return;
  const before=[key("h2h"),key("roto"),projectionsKey,fullBackupKey].map(k=>[k,localStorage.getItem(k)]);
