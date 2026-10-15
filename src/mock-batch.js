@@ -166,7 +166,19 @@ export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal
    chosen={p,reference,bid:clearing,team:winner,nominator:nominator.team,opening,yahooCap,highestWillingness,secondWillingness,eligibleTeams:eligible.length,bidDiagnostics:affordable.map(b=>({team:b.team,willingness:b.bid,remaining:eligible.find(x=>x.team===b.team).stats.remaining,maxBid:eligible.find(x=>x.team===b.team).stats.maxBid,open:eligible.find(x=>x.team===b.team).stats.open})),nominationIndex:state.picks.length+1};
    break;
   }
-  if(!chosen)throw Error("無符合位置及預算限制的可競標球員");
+  if(!chosen){
+    const remaining=open.map(({team,stats})=>{
+      const legal=available.filter(p=>canAddToRoster(rosters[team-1],p,mode));
+      const affordableOpening=legal.filter(p=>{
+        const reference=league.reference.get(key(p));
+        const opening=(biddingMode==="competitive-ai"||biddingMode==="competitive-balanced"||biddingMode==="adaptive-ai"||biddingMode==="adaptive-v4"||biddingMode==="auction-v5")?1:(reference>10?Math.floor(reference)+1:1);
+        const cap=(biddingMode==="cap-120"||biddingMode==="integrated-120")&&Number.isFinite(reference)&&reference>0?Math.max(1,Math.floor(reference*1.2)):Infinity;
+        return opening<=cap&&opening<=stats.maxBid;
+      });
+      return {team,open:stats.open,remaining:stats.remaining,maxBid:stats.maxBid,legalPlayers:legal.length,affordableOpeningPlayers:affordableOpening.length};
+    });
+    throw Error("無符合位置及預算限制的可競標球員 "+JSON.stringify({mode,biddingMode,seed,scenario,pick:state.picks.length,available:available.length,teams:remaining}));
+   }
   const price=chosen.bid;
   state=addPick(state,{player:chosen.p.player,team:chosen.team,price});
   rosters[chosen.team-1].push(chosen.p);
