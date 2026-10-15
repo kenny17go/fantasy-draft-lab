@@ -133,9 +133,16 @@ test("every nomination has a funded opening bid and either the nominator or a ch
     const calibratedProj=mode==="h2h"?Math.round(reference.proj*13/12*10)/10:reference.proj;
     const priceReference=Math.max(reference.avg,calibratedProj);
     const expected=priceReference>10?Math.floor(priceReference)+1:1;
-    assert.equal(sale.opening,expected);
+    if(sale.opening===1&&expected>1){
+     // A reference floor may fall back to the legal $1 minimum only when
+     // no eligible team can fund the higher opening while reserving $1/slot.
+     assert.ok(sale.bidDiagnostics.length>0);
+     assert.ok(sale.bidDiagnostics.every(b=>b.maxBid<expected),"reference opening was affordable; $1 fallback is invalid");
+    }else{
+     assert.equal(sale.opening,expected);
+    }
     assert.ok(sale.price>=sale.opening);
-    if(mode==="h2h" && priceReference>10){
+    if(mode==="h2h" && priceReference>10 && sale.opening>1){
      assert.ok(sale.opening>reference.avg);
      assert.ok(sale.opening>calibratedProj);
     }
