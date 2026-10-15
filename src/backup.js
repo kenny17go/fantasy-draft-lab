@@ -28,3 +28,19 @@ export function readBackup(text){
  if(b?.format!=="fantasy-draft-lab-backup"||b.version!==1||!b.leagues)throw Error("不是支援的完整備份格式");
  return {h2h:validateState(b.leagues.h2h,"h2h"),roto:validateState(b.leagues.roto,"roto"),players:validatePlayers(b.projections),prices:validatePrices(b.prices??[])};
 }
+
+
+const csvColumns=["dataset","mode","team","player","price","positions","gp","pts","reb","ast","stl","blk","three","tov","fgm","fga","ftm","fta","avg","proj"];
+const csvCell=value=>{
+ const s=value==null?"":String(value);
+ const safe=/^\s*[=+@-]/.test(s)&&!/^-[0-9]+(?:\.[0-9]+)?$/.test(s)?"'"+s:s;
+ return /[",\r\n]/.test(safe)?'"'+safe.replace(/"/g,'""')+'"':safe;
+};
+export function backupToCsv(backup){
+ const b=readBackup(JSON.stringify(backup));
+ const rows=[];
+ for(const mode of ["h2h","roto"])for(const pick of b[mode].picks)rows.push({dataset:"sale",mode,...pick});
+ for(const p of b.players)rows.push({dataset:"projection",...p,positions:p.positions.join("|")});
+ for(const p of b.prices)rows.push({dataset:"yahoo_price",player:p.player,avg:p.avg,proj:p.proj});
+ return "\uFEFF"+[csvColumns.join(","),...rows.map(row=>csvColumns.map(k=>csvCell(row[k])).join(","))].join("\r\n");
+}

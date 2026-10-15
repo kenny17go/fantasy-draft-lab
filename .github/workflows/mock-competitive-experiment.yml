@@ -1,0 +1,68 @@
+name: Mock Competitive AI Experiment
+on:
+  push:
+    branches:
+      - experiment/mock-diagnostic-v1-20261014
+  workflow_dispatch:
+jobs:
+  comparison:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Competitive AI paired 30-seed comparison
+        shell: bash
+        run: |
+          set -o pipefail
+          node --test tests/competitive-ai-comparison.test.js | tee competitive-ai-result.txt
+      - name: Real Yahoo snapshot 30-seed comparison
+        shell: bash
+        run: |
+          set -o pipefail
+          node --test tests/real-yahoo-comparison.test.js | tee real-yahoo-result.txt
+      - name: V5 price reasonableness validation
+        shell: bash
+        run: |
+          set -o pipefail
+          node --test tests/v5-price-reasonableness.test.js | tee v5-price-validation.txt
+      - name: V5 root cause diagnostics
+        shell: bash
+        run: |
+          set -o pipefail
+          node --test tests/v5-root-cause-diagnostics.test.js | tee v5-root-cause.txt
+      - name: Baseline auction diagnostics
+        shell: bash
+        run: |
+          set -o pipefail
+          node --test tests/mock-diagnostic-v1.test.js | tee baseline-result.txt
+      - name: Add comparison to run summary
+        if: always()
+        shell: bash
+        run: |
+          echo '## Competitive AI experiment' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Synthetic Yahoo-like prices; not real Yahoo auction results.' >> "$GITHUB_STEP_SUMMARY"
+          for file in competitive-ai-result.txt real-yahoo-result.txt v5-price-validation.txt v5-root-cause.txt baseline-result.txt; do
+            if test -f "$file"; then
+              echo "### $file" >> "$GITHUB_STEP_SUMMARY"
+              echo '~~~text' >> "$GITHUB_STEP_SUMMARY"
+              grep -E 'COMPETITIVE_AI_COMPARISON|REAL_YAHOO_2026_COMPARISON|V5_PRICE_REASONABLENESS|V5_ROOT_CAUSE_DIAGNOSTICS|MOCK_DIAGNOSTIC_V1|not ok|error:' "$file" | head -c 30000 >> "$GITHUB_STEP_SUMMARY" || true
+              echo >> "$GITHUB_STEP_SUMMARY"
+              echo '~~~' >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
+      - name: Upload experiment logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mock-competitive-experiment-logs
+          path: |
+            competitive-ai-result.txt
+            real-yahoo-result.txt
+            v5-price-validation.txt
+            v5-root-cause.txt
+            baseline-result.txt
+          if-no-files-found: warn

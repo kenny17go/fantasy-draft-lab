@@ -1,7 +1,7 @@
 import {readMockArchive,writeMockArchive,deleteMockArchive} from "./mock-storage.js";
 import {recommendMockTeams} from "./mock-recommendations.js";
 import {parseYahooPrices,mergeYahooPrices} from "./yahoo-prices.js";
-import {makeBackup,readBackup} from "./backup.js";
+import {makeBackup,readBackup,backupToCsv} from "./backup.js";
 import {parseYahooMobileText,mergeProjectionPlayers} from "./yahoo-mobile.js";
 import {yahooProjectedToCsv} from "./yahoo-import.js";
 import {parseProjections,rankProjections} from "./projections.js";
@@ -147,6 +147,7 @@ $("yahoo-paste-import").addEventListener("click",()=>{try{const source=$("yahoo-
 
 const fullBackupKey="fantasy-draft-lab:v1:prices";
 function downloadJson(data,name){const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+$("export-all-csv").addEventListener("click",()=>{try{const prices=JSON.parse(localStorage.getItem(fullBackupKey)||"[]");const csv=backupToCsv(makeBackup(load("h2h"),load("roto"),projectionPlayers,prices));const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="fantasy-draft-lab-full-data.csv";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);feedback("CSV 已匯出；完整還原請使用 JSON 備份");}catch(e){feedback("CSV 匯出失敗："+e.message);}});
 $("export-all").addEventListener("click",()=>{try{const prices=JSON.parse(localStorage.getItem(fullBackupKey)||"[]");downloadJson(makeBackup(load("h2h"),load("roto"),projectionPlayers,prices),"fantasy-draft-lab-full-backup.json");feedback("完整備份已產生：H2H、ROTO、球員預測及價格。");}catch(err){feedback("備份失敗："+err.message);}});
 $("import-all").addEventListener("change",async e=>{const file=e.target.files[0];if(!file)return;try{const data=readBackup(await file.text());if(!confirm("將以完整備份覆蓋本機兩個聯盟、預測及價格資料。確定還原？"))return;
  const before=[key("h2h"),key("roto"),projectionsKey,fullBackupKey].map(k=>[k,localStorage.getItem(k)]);
@@ -205,7 +206,7 @@ let batchResult=null;
 function loadArchive(){try{const x=JSON.parse(localStorage.getItem(mockArchiveKey(mode))||"null");return normalizeArchive(x);}catch{return null;}}
 async function storeArchive(data){
  // Save each roster once; recompute cross-run recommendations from stored stats.
- const compact={version:3,modelVersion:2,results:data.results.map(r=>({
+ const compact={version:3,modelVersion:2,biddingModel:data.biddingModel,results:data.results.map(r=>({
   seed:r.seed,scenario:r.scenario,mode:r.mode,winner:r.winner,metric:r.metric,
   teams:r.teams.map(t=>({
    team:t.team,rank:t.rank,score:t.score,spent:t.spent,bargain:t.bargain,
@@ -223,11 +224,12 @@ function normalizeArchive(data){
  }))}))};
 }
 const batchSection=document.createElement("section");batchSection.className="panel";batchSection.id="mock-archive-panel";
-batchSection.innerHTML='<h2>Mock Draft 模擬紀錄庫</h2><p class="hint">每場 14 隊完整模擬；按場次查看最佳球隊、排名與陣容。結果是模型產生，並非 Yahoo 真實成交紀錄。僅保存在目前瀏覽器。</p><div class="actions"><button type="button" id="batch-run">產生 100 場 Mock Draft</button><button type="button" id="batch-clear" class="secondary">清除本機模擬紀錄</button></div><p id="batch-status" role="status"></p><div id="batch-top"><h3>跨場最佳策略 Top 5</h3><p class="hint">跨場九項預測比較，前三名優先參考；非實際勝率。</p><div id="batch-top-list"></div></div><label>選擇模擬場次 <select id="batch-select"></select></label><div class="table-wrap"><table><thead><tr><th>場內排名</th><th>隊伍</th><th>預估分數</th><th>花費</th><th>與 Yahoo 價差</th></tr></thead><tbody id="batch-results"></tbody></table></div><details id="batch-details"><summary>球隊完整陣容與成交價</summary><div id="batch-detail"></div></details>';
+batchSection.innerHTML='<h2>Mock Draft 模擬紀錄庫</h2><p class="hint" id="batch-model-note">H2H 使用 Auction V5 競價；ROTO 暫維持既有模型。</p><p class="hint">每場 14 隊完整模擬；按場次查看最佳球隊、排名與陣容。結果是模型產生，並非 Yahoo 真實成交紀錄。僅保存在目前瀏覽器。</p><div class="actions"><button type="button" id="batch-run">產生 100 場 Mock Draft</button><button type="button" id="batch-clear" class="secondary">清除本機模擬紀錄</button></div><p id="batch-status" role="status"></p><div id="batch-top"><h3>跨場最佳策略 Top 5</h3><p class="hint">跨場九項預測比較，前三名優先參考；非實際勝率。</p><div id="batch-top-list"></div></div><label>選擇模擬場次 <select id="batch-select"></select></label><div class="table-wrap"><table><thead><tr><th>場內排名</th><th>隊伍</th><th>預估分數</th><th>花費</th><th>與 Yahoo 價差</th></tr></thead><tbody id="batch-results"></tbody></table></div><details id="batch-details"><summary>球隊完整陣容與成交價</summary><div id="batch-detail"></div></details>';
 document.querySelector("#live-names").before(batchSection);setTab(activeTab);
 function showBatch(){
  const select=$("batch-select"),body=$("batch-results");select.replaceChildren();body.replaceChildren();$("batch-detail").replaceChildren();$("batch-top-list").replaceChildren();
  if(!batchResult){$("batch-status").textContent="目前沒有保存的模擬紀錄";return;}
+  $("batch-model-note").textContent=batchResult.biddingModel?("目前紀錄使用 "+batchResult.biddingModel+"；H2H 新模擬使用 Auction V5，ROTO 維持既有模型。"):"目前紀錄由舊競價模型產生；請重新模擬以使用 H2H Auction V5。";
  batchResult.results.forEach((run,i)=>{const o=document.createElement("option");o.value=i;o.textContent="模擬 #"+(i+1)+" · 最佳 Team "+run.winner+" · "+run.scenario;select.append(o);});
  renderTopTeams();
  renderRun(0);
@@ -277,11 +279,11 @@ $("batch-run").addEventListener("click",()=>{
   try{
    for(let j=0;j<2&&results.length<100;j++){
     const i=results.length;
-    results.push(runFullMock(players,prices,selectedMode,i+1,scenarios[i%scenarios.length]));
+    results.push(runFullMock(players,prices,selectedMode,i+1,scenarios[i%scenarios.length],selectedMode==="h2h"?"auction-v5":"normal"));
    }
    $("batch-status").textContent="已完成 "+results.length+" / 100 場…";
    if(results.length<100){setTimeout(next,0);return;}
-   batchResult={results,ranked:[],count:100,modelVersion:2};
+   batchResult={results,ranked:[],count:100,modelVersion:2,biddingModel:selectedMode==="h2h"?"Auction V5":"Normal"};
    const saved=await storeArchive(batchResult);
    try{showBatch();}catch(renderError){console.error("Mock result display failed",renderError);$("batch-status").textContent="100 場已完成"+(saved?"並保存":"（尚未保存）")+"，但推薦顯示失敗："+renderError.message;return;}
    if(!saved)$("batch-status").textContent="100 場完成，但本機儲存空間不足；本次結果僅暫存。";
