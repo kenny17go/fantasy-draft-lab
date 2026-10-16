@@ -1,3 +1,4 @@
+import {runFullMock as runLegacyFullMock} from "./mock-batch-legacy.js";
 import {buildLeagueMarket,leagueTarget,minimumLeagueBid} from "./league-market.js";
 import {adjustedH2HPrices} from "./h2h-price-calibration.js";
 import {CONFIG,addPick,fresh,teamStats} from "./model.js";
@@ -19,6 +20,7 @@ export function settleNomination(opening,nominator,nominatorMax,challengers=[]){
  return {team:winner.team,price,raised:true};
 }
 export function runFullMock(players,prices=[],mode="h2h",seed=1,scenario="normal",biddingMode="normal",nominationOrder="round-robin"){
+ if(biddingMode==="normal")return runLegacyFullMock(players,prices,mode,seed,scenario);
  const cfg=CONFIG[mode];if(!cfg)throw Error("未知模式");
  if(players.length<cfg.teams*cfg.slots)throw Error("預測球員不足");
  if(!["normal","forced-first-raise","budget-aware","spend-target","paced-target","value-guard","top4-90","top4-100","top4-110","top4-value-100","cap-120","integrated-120","competitive-ai","competitive-balanced","adaptive-ai","adaptive-v4","auction-v5"].includes(biddingMode))throw Error("未知競標模式");
