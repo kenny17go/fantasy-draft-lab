@@ -8,7 +8,7 @@ test("Mock Draft UI selects V5 only for H2H and records model identity",()=>{
  assert.match(app,/runFullMock\(players,prices,selectedMode,i\+1,scenarios\[i%scenarios\.length\],selectedMode==="h2h"\?"auction-v5":"normal"\)/);
  assert.match(app,/biddingModel:selectedMode==="h2h"\?"Auction V5":"Normal"/);
  assert.match(app,/biddingModel:data\.biddingModel/);
- assert.match(app,/batchResult\.biddingModel\?/);
+ assert.match(app,/H2H 新模擬採用 Auction V5/);
 });
 test("UI V5 call produces complete and budget-legal real Yahoo H2H simulation",()=>{
  const result=runFullMock(snapshot.projections,snapshot.prices,"h2h",1,"normal","auction-v5");
