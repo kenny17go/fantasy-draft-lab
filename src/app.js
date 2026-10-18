@@ -1,5 +1,6 @@
 import {readMockArchive,writeMockArchive,deleteMockArchive} from "./mock-storage.js";
 import {recommendMockTeams} from "./mock-recommendations.js";
+import {classifyMockTeams} from "./mock-style.js";
 import {parseYahooPrices,mergeYahooPrices} from "./yahoo-prices.js";
 import {makeBackup,readBackup,backupToCsv} from "./backup.js";
 import {parseYahooMobileText,mergeProjectionPlayers} from "./yahoo-mobile.js";
@@ -243,11 +244,13 @@ function renderTopTeams(){
   const button=document.createElement("button");
   button.type="button";button.className="secondary";
   button.style.cssText="display:block;width:100%;text-align:left;white-space:normal;margin:8px 0";
-  button.textContent="Top "+(i+1)+" · 模擬 #"+t.run+" · Team "+t.team+" · 九項 Z "+t.overallScore.toFixed(2);
+  const run=batchResult.results[t.run-1];
+  const style=mode==="h2h"&&run?classifyMockTeams(run.teams).get(t.team)?.style:null;
+  button.textContent="Top "+(i+1)+" · 模擬 #"+t.run+" · Team "+t.team+(style?" · "+style:"");
   button.addEventListener("click",()=>{
    $("batch-select").value=String(t.run-1);
    renderRun(t.run-1);
-   const row=[...$("batch-results").rows].find(r=>r.cells[1]?.textContent==="Team "+t.team);
+   const row=[...$("batch-results").rows].find(r=>r.cells[1]?.textContent?.startsWith("Team "+t.team+" ·")||r.cells[1]?.textContent==="Team "+t.team);
    if(row)row.click();
    $("batch-details").scrollIntoView({block:"start",behavior:"smooth"});
   });
@@ -257,10 +260,11 @@ function renderTopTeams(){
 function renderRun(index){
  const run=batchResult?.results[index];if(!run)return;
  const body=$("batch-results");body.replaceChildren();$("batch-detail").replaceChildren();
+ const styles=mode==="h2h"?classifyMockTeams(run.teams):new Map();
  [...run.teams].sort((a,b)=>a.rank-b.rank).forEach(t=>{
-  const tr=document.createElement("tr");for(const v of [t.rank===1?"🏆 第 1 名":t.rank,"Team "+t.team,Number(t.score).toFixed(2),"$"+t.spent,"$"+Math.round(t.bargain)])cell(tr,v);
+  const tr=document.createElement("tr");const style=styles.get(t.team);for(const v of [t.rank===1?"🏆 第 1 名":t.rank,"Team "+t.team,Number(t.score).toFixed(2),"$"+t.spent,"$"+Math.round(t.bargain)])cell(tr,v);if(style){tr.cells[1].textContent+=" · "+style.style;tr.title="九項相對強項："+(style.strengths.join("、")||"無明顯優勢");}
   tr.tabIndex=0;tr.setAttribute("role","button");
-  const open=()=>{const detail=$("batch-detail");detail.replaceChildren();const title=document.createElement("h3");title.textContent="模擬 #"+(index+1)+" · Team "+t.team+" · 場內第 "+t.rank+" 名";detail.append(title);const summary=document.createElement("p");summary.textContent="預估分數 "+Number(t.score).toFixed(2)+"｜花費 $"+t.spent+"｜與 Yahoo 價差 $"+Math.round(t.bargain);detail.append(summary);t.players.forEach(p=>{const row=document.createElement("p");row.textContent=p.player+" — $"+p.price;detail.append(row);});$("batch-details").open=true;};
+  const open=()=>{const detail=$("batch-detail");detail.replaceChildren();const title=document.createElement("h3");title.textContent="模擬 #"+(index+1)+" · Team "+t.team+" · 場內第 "+t.rank+" 名";detail.append(title);const summary=document.createElement("p");summary.textContent="預估分數 "+Number(t.score).toFixed(2)+"｜花費 $"+t.spent+"｜與 Yahoo 價差 $"+Math.round(t.bargain);detail.append(summary);if(style){const note=document.createElement("p");note.textContent="陣容類型："+style.style+"｜九項相對強項："+(style.strengths.join("、")||"無明顯優勢");detail.append(note);}t.players.forEach(p=>{const row=document.createElement("p");row.textContent=p.player+" — $"+p.price;detail.append(row);});$("batch-details").open=true;};
   tr.addEventListener("click",open);tr.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open();}});body.append(tr);
  });
 }
