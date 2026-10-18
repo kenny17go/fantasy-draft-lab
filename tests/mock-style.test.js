@@ -13,3 +13,12 @@ test("uniform categories remain balanced",()=>{
  const teams=Array.from({length:14},(_,i)=>team(i+1,{}));
  assert.ok([...classifyMockTeams(teams).values()].every(x=>x.style==="平衡型"));
 });
+
+test("Top 5 UI replaces Z-score with roster style without changing ranking",async()=>{
+ const {readFileSync}=await import("node:fs");
+ const app=readFileSync(new URL("../src/app.js",import.meta.url),"utf8");
+ assert.match(app,/const style=mode==="h2h"&&run\?classifyMockTeams\(run\.teams\)\.get\(t\.team\)\?\.style:null/);
+ assert.match(app,/button\.textContent="Top "/);
+ assert.doesNotMatch(app,/button\.textContent=[^;]*九項 Z/);
+ assert.match(app,/renderRun\(t\.run-1\)/);
+});
