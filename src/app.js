@@ -244,11 +244,13 @@ function renderTopTeams(){
   const button=document.createElement("button");
   button.type="button";button.className="secondary";
   button.style.cssText="display:block;width:100%;text-align:left;white-space:normal;margin:8px 0";
-  button.textContent="Top "+(i+1)+" · 模擬 #"+t.run+" · Team "+t.team+" · 九項 Z "+t.overallScore.toFixed(2);
+  const run=batchResult.results[t.run-1];
+  const style=mode==="h2h"&&run?classifyMockTeams(run.teams).get(t.team)?.style:null;
+  button.textContent="Top "+(i+1)+" · 模擬 #"+t.run+" · Team "+t.team+(style?" · "+style:"");
   button.addEventListener("click",()=>{
    $("batch-select").value=String(t.run-1);
    renderRun(t.run-1);
-   const row=[...$("batch-results").rows].find(r=>r.cells[1]?.textContent==="Team "+t.team);
+   const row=[...$("batch-results").rows].find(r=>r.cells[1]?.textContent?.startsWith("Team "+t.team+" ·")||r.cells[1]?.textContent==="Team "+t.team);
    if(row)row.click();
    $("batch-details").scrollIntoView({block:"start",behavior:"smooth"});
   });
