@@ -33,7 +33,7 @@ async function refresh(){
   const monday=weekStart(get("week").value);
   const remaining=games.filter(g=>weekStart(g.date)!==monday);
   const merged=[...remaining,...fetched].sort((a,b)=>a.date.localeCompare(b.date));
-  const csv=["date,home,away",...merged.map(g=>[g.date,g.home,g.away].join(","))].join("\\n");
+  const csv=["date,home,away",...merged.map(g=>[g.date,g.home,g.away].join(","))].join("\n");
   localStorage.setItem(key,csv);games=merged;loadedWeek=monday;render();
   get("schedule-status").textContent="已從 ESPN 更新本週 "+fetched.length+" 場；資料已保存在本機。";
  }catch(error){render();get("schedule-status").textContent="自動更新失敗："+error.message+"；既有資料已保留，可用 CSV 備援。";}
