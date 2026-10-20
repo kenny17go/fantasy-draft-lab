@@ -64,11 +64,34 @@ def merge_cup(base_text, additions_text, season):
     validate(merged,season,"cup")
     return merged
 
-def publish(source,target,season,stage):
+def publish(source,target,season,stage,archive_dir=None):
+    """Validate before replacing, with an immutable SHA-256 snapshot of old data."""
+    import hashlib
+    import os
+    import tempfile
     content=source.read_text(encoding="utf-8")
     result=validate(content,season,stage)
     target.parent.mkdir(parents=True,exist_ok=True)
-    import os,tempfile
+    if target.exists():
+        old=target.read_bytes()
+        validate(old.decode("utf-8"),season,"cup" if len(list(csv.DictReader(io.StringIO(old.decode("utf-8")))))>1200 else "fixed")
+        if archive_dir is None:
+            archive_dir=target.parent/"archive"/season
+        archive_dir.mkdir(parents=True,exist_ok=True)
+        digest=hashlib.sha256(old).hexdigest()
+        snapshot=archive_dir/(digest+".csv")
+        if snapshot.exists():
+            if snapshot.read_bytes()!=old: raise ValueError("Archive hash collision or corrupt snapshot")
+        else:
+            fd,tmp=tempfile.mkstemp(dir=archive_dir,prefix=".snapshot-",suffix=".csv")
+            try:
+                with os.fdopen(fd,"wb") as out:
+                    out.write(old)
+                    out.flush()
+                    os.fsync(out.fileno())
+                os.replace(tmp,snapshot)
+            finally:
+                if os.path.exists(tmp): os.unlink(tmp)
     fd,name=tempfile.mkstemp(dir=target.parent,prefix=".nba-stage-",suffix=".csv")
     try:
         with os.fdopen(fd,"w",encoding="utf-8",newline="") as out:
