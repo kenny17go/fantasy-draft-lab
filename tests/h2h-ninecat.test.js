@@ -15,6 +15,7 @@ test("missing projections never silently become zero estimates",()=>{
  const r=compareNineCat(games,[{name:"Unknown",team:"NYK"}],[{name:"Beta",team:"BOS"}],"2026-10-20",parseNineCatCsv(csv));
  assert.equal(r.complete,false);
  assert.deepEqual(r.mine.missing,["Unknown"]);
+ assert.ok(r.categories.every(x=>x.result==="N/A"));
 });
 test("reject impossible shooting inputs",()=>{
  assert.throws(()=>parseNineCatCsv(csv.replace("Alpha,5,10","Alpha,11,10")));
