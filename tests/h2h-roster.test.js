@@ -14,7 +14,7 @@ test("weekly games count excludes next week",()=>{
 });
 
 test("Yahoo tabular rows require one NBA team and preserve names",()=>{
- const rows=parseYahooTable("Player\\tTeam\\tPosition\\nJayson Tatum\\tBOS\\tSF\\nStephen Curry\\tGSW\\tPG".replaceAll("\\\\t","\\t").replaceAll("\\\\n","\\n"));
+ const rows=parseYahooTable(["Player\tTeam\tPosition","Jayson Tatum\tBOS\tSF","Stephen Curry\tGSW\tPG"].join("\n"));
  assert.deepEqual(rows.map(x=>x.team),["BOS","GSW"]);
  assert.throws(()=>parseYahooTable("Someone\\tBOS\\tNYK"));
 });
