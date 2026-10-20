@@ -1,12 +1,19 @@
 import {TEAMS,parseScheduleCsv,scheduleGrid,seasonGrid,backToBacks} from "./h2h-schedule.js";
-import {parseRoster,rosterWeek} from "./h2h-roster.js";
+import {parseRoster,parseYahooTable,rosterWeek,compareRosterWeeks} from "./h2h-roster.js";
 const get=id=>document.getElementById(id);
 let games=[];\nlet source="none";
 let roster=[];
+let opponent=[];
 const key="fantasy-draft-lab:h2h:schedule:v1";
 try{games=parseScheduleCsv(localStorage.getItem(key)||"date,home,away");if(games.length)source="local";}catch{}
 for(const team of TEAMS){const option=document.createElement("option");option.value=team;option.textContent=team;get("filter").append(option);}
+function updateComparison(){
+ if(!roster.length||!opponent.length){get("comparison-status").textContent="請先匯入雙方名單";return;}
+ const result=compareRosterWeeks(games,roster,opponent,get("week").value);
+ get("comparison-status").textContent=`我方 ${result.mineGames} 場／對手 ${result.opponentGames} 場；場次差 ${result.difference>0?"+":""}${result.difference}（僅排定場次，非 9-Cat 勝率）`;
+}
 function renderRoster(){
+ updateComparison();
  const body=get("roster-table").tBodies[0];body.replaceChildren();
  const rows=rosterWeek(games,roster,get("week").value);
  for(const player of rows){const tr=document.createElement("tr");for(const value of [player.name,player.team,player.games]){const td=document.createElement("td");td.textContent=value;tr.append(td);}body.append(tr);}
@@ -41,6 +48,7 @@ function load(value){
  }catch(error){get("schedule-status").textContent="匯入失敗："+error.message;}
 }
 get("roster-import").addEventListener("click",()=>{try{roster=parseRoster(get("roster-paste").value);renderRoster();}catch(error){get("roster-status").textContent="名單匯入失敗："+error.message;}});
+get("compare-rosters").addEventListener("click",()=>{try{opponent=parseRoster(get("opponent-paste").value);updateComparison();}catch(error){get("comparison-status").textContent="對手名單匯入失敗："+error.message;}});
 get("parse-paste").addEventListener("click",()=>load(get("schedule-paste").value));
 get("schedule-file").addEventListener("change",async event=>{const file=event.target.files[0];if(file)load(await file.text());});
 get("week").addEventListener("change",render);
