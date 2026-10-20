@@ -21,21 +21,27 @@ export function parseRoster(text){
  * Reject ambiguous lines rather than guessing the player's NBA affiliation.
  */
 export function parseYahooTable(text){
+ const lines=String(text||"").split(/\r?\n/).filter(x=>x.trim());
+ if(!lines.length)return [];
+ const split=line=>line.split("\t").map(x=>x.trim());
+ const header=split(lines[0]).map(x=>x.toLowerCase());
+ const nameColumn=header.findIndex(x=>/^(player|players|name|球員|球員名稱)$/.test(x));
+ const teamColumn=header.findIndex(x=>/^(team|nba team|nba球隊|nba 球隊|球隊)$/.test(x));
+ const hasHeader=nameColumn>=0&&teamColumn>=0;
  const rows=[],seen=new Set();
- for(const raw of String(text||"").split(/\r?\n/)){
-  const line=raw.trim();if(!line)continue;
-  const cells=line.split("\t").map(x=>x.trim());
+ for(const raw of lines.slice(hasHeader?1:0)){
+  const cells=split(raw);
   if(cells.length<2)throw Error("Yahoo 表格需要以 Tab 分隔的欄位");
-  const name=cells[0].replace(/\s*\(.*?\)\s*$/,"").trim();
-  if(/^(player|players|球員|name)$/i.test(name))continue;
-  const codes=cells.slice(1).map(x=>teamCode(x)).filter(x=>TEAMS.includes(x));
-  const distinct=[...new Set(codes)];
-  if(distinct.length!==1)throw Error("無法唯一辨識 NBA 球隊："+line);
+  const name=(cells[hasHeader?nameColumn:0]||"").trim();
+  const candidates=hasHeader?[teamCode(cells[teamColumn])]:cells.slice(1).map(teamCode).filter(x=>TEAMS.includes(x));
+  const distinct=[...new Set(candidates.filter(x=>TEAMS.includes(x)))];
+  if(distinct.length!==1)throw Error("無法唯一辨識 NBA 球隊："+raw);
   if(!name||seen.has(name.toLowerCase()))throw Error("球員名稱空白或重複："+name);
   seen.add(name.toLowerCase());rows.push({name,team:distinct[0]});
  }
  return rows;
 }
+
 export function rosterWeek(games,roster,date){
  const start=weekStart(date);
  const monday=new Date(start+"T12:00:00Z");
