@@ -38,6 +38,32 @@ def validate(text, season, stage="fixed"):
     else: raise ValueError("Unknown stage")
     return {"games":len(rows),"teams":len(counts),"min_team_games":min(counts.values()),"max_team_games":max(counts.values())}
 
+def merge_cup(base_text, additions_text, season):
+    """Add official Cup fixtures without mutating the fixed schedule.
+
+    CSVs have date,home,away only; absent NBA game IDs mean changed dates
+    cannot safely be inferred. Conflicts must be reviewed manually.
+    """
+    validate(base_text,season,"fixed")
+    base=list(csv.DictReader(io.StringIO(base_text)))
+    additions=list(csv.DictReader(io.StringIO(additions_text)))
+    if not additions or set(additions[0])!={"date","home","away"}:
+        raise ValueError("Cup additions must have date,home,away")
+    existing={(r["date"],r["home"],r["away"]) for r in base}
+    new=set()
+    for r in additions:
+        key=(r["date"],r["home"],r["away"])
+        if key in existing or key in new:
+            raise ValueError("Duplicate or already published Cup fixture")
+        new.add(key)
+    output=io.StringIO()
+    writer=csv.DictWriter(output,fieldnames=["date","home","away"],lineterminator="\\n")
+    writer.writeheader()
+    writer.writerows(sorted(base+additions,key=lambda r:(r["date"],r["home"],r["away"])))
+    merged=output.getvalue()
+    validate(merged,season,"cup")
+    return merged
+
 def publish(source,target,season,stage):
     content=source.read_text(encoding="utf-8")
     result=validate(content,season,stage)
