@@ -16,7 +16,7 @@ function updateNineCat(){
  const result=compareNineCat(games,roster,opponent,get("week").value,projections);
  const format=(value,category)=>value===null?"—":category.endsWith("%")?(value*100).toFixed(2)+"%":value.toFixed(1);
  for(const item of result.categories){const tr=document.createElement("tr");for(const value of [item.category,format(item.mine,item.category),format(item.opponent,item.category),item.result==="mine"?"我方":item.result==="opponent"?"對手":item.result==="tie"?"平手":"無法比較"]){const td=document.createElement("td");td.textContent=value;tr.append(td);}body.append(tr);}
- get("ninecat-status").textContent=result.complete?"預估數據完整；未考慮傷停、上場時間變動與 Yahoo 上場限制":`缺少預測：我方 ${result.mine.missing.join("、")||"無"}；對手 ${result.opponent.missing.join("、")||"無"}。結果不完整，不可視為正式勝負預測。`;
+ get("ninecat-status").textContent=result.complete?"預估數據完整；未考慮傷停、上場時間變動與 Yahoo 上場限制":`缺少預測（共 ${result.mine.missing.length+result.opponent.missing.length} 名）：我方 ${result.mine.missing.join("、")||"無"}；對手 ${result.opponent.missing.join("、")||"無"}。結果不完整，不可視為正式勝負預測。`;
 }
 function updateComparison(){
  updateNineCat();
