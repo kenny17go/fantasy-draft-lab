@@ -29,3 +29,18 @@ export function scheduleGrid(games,start){
  return {dates,rows:rows.map(r=>({...r,count:r.days.reduce((n,d)=>n+d.length,0)})),totalByDay:dates.map(date=>games.filter(g=>g.date===date).length)};
 }
 
+
+/** Full-season Monday-based weekly totals; NBA Cup TBD fixtures remain excluded. */
+export function seasonGrid(games){
+ if(!games.length)return {weeks:[],rows:TEAMS.map(team=>({team,counts:[],total:0}))};
+ const weeks=[...new Set(games.map(g=>weekStart(g.date)))].sort();
+ return {weeks,rows:TEAMS.map(team=>{
+  const counts=weeks.map(week=>games.filter(g=>weekStart(g.date)===week&&(g.home===team||g.away===team)).length);
+  return {team,counts,total:counts.reduce((a,b)=>a+b,0)};
+ })};
+}
+/** A back-to-back is a team playing on consecutive US-local game dates. */
+export function backToBacks(games,team){
+ const days=[...new Set(games.filter(g=>g.home===team||g.away===team).map(g=>g.date))].sort();
+ return days.slice(1).filter((day,i)=>(Date.parse(day+"T12:00:00Z")-Date.parse(days[i]+"T12:00:00Z"))===86400000).length;
+}
