@@ -16,15 +16,17 @@ export function parseYahooPage(text){
   if(!name||seen.has(name.toLowerCase())){failures.push("球員名稱重複或缺漏："+name);continue;}
   // Roster owner and opponent are variable; locate GP followed by two ranking columns.
   let found=null;
-  for(let j=i+1;j<Math.min(i+15,lines.length-15);j++){
+  const nextPlayer=lines.findIndex((line,k)=>k>i&&teamPattern.test(line));
+  const boundary=nextPlayer<0?lines.length:nextPlayer-2;
+  for(let j=i+1;j<Math.min(i+15,boundary);j++){
    const gp=number(lines[j]);
    if(!/^\d+(?:\.\d+)?$/.test(lines[j])||gp<=0||gp>82)continue;
    if(!/^\d+$/.test(lines[j+1]||"")||!/^\d+$/.test(lines[j+2]||""))continue;
-   const tail=lines.slice(j+3,j+18);
+   const tail=lines.slice(j+3,Math.min(j+18,boundary));
    const shotIndex=tail.findIndex(x=>statsPattern.test(x));
-   if(shotIndex<1||!/^\d+(?:\.\d+)?%$/.test(tail[shotIndex-2]||""))continue;
+   if(shotIndex<2||!/^\d+(?:\.\d+)?%$/.test(tail[shotIndex-2]||""))continue;
    const shot=tail[shotIndex].match(statsPattern),ft=tail[shotIndex+2]?.match(statsPattern);
-   if(!ft)continue;
+   if(!ft||!/^\.?(?:\d+(?:\.\d+)?)$/.test(tail[shotIndex+1]||"")||!/^\.?(?:\d+(?:\.\d+)?)$/.test(tail[shotIndex+3]||""))continue;
    const values=tail.slice(shotIndex+4,shotIndex+11);
    if(values.length!==7||values.some(v=>!/^[\d,.]+$/.test(v)))continue;
    const [three,pts,reb,ast,stl,blk,tov]=values.map(number);
