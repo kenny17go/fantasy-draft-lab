@@ -3,7 +3,7 @@ import tempfile
 import unittest
 import sys
 sys.path.insert(0,str(pathlib.Path(__file__).resolve().parents[1]/"scripts"))
-from season_store import validate,publish
+from season_store import validate,publish,merge_cup
 
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 class SeasonStoreTests(unittest.TestCase):
@@ -27,6 +27,16 @@ class SeasonStoreTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 publish(bad,target,"2026-27","fixed")
             self.assertEqual(target.read_text(encoding="utf-8"),self.original)
+    def test_cup_duplicate_rejected(self):
+        first=self.original.splitlines()[1]
+        with self.assertRaises(ValueError):
+            merge_cup(self.original,"date,home,away"+chr(10)+first+chr(10),"2026-27")
+    def test_cup_invalid_team_rejected(self):
+        with self.assertRaises(ValueError):
+            merge_cup(self.original,"date,home,away"+chr(10)+"2027-01-01,XYZ,BOS"+chr(10),"2026-27")
+    def test_cup_rejects_missing_additions(self):
+        with self.assertRaises(ValueError):
+            merge_cup(self.original,"date,home,away"+chr(10),"2026-27")
     def test_duplicate_rejected(self):
         with self.assertRaises(ValueError):
             validate(self.original+self.original.splitlines()[1]+"\n","2026-27")
