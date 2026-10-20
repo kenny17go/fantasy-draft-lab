@@ -7,12 +7,14 @@ let source="none";
 let roster=[];
 let opponent=[];
 let projections=null;
+let manualScheduleSelected=false;
 const key="fantasy-draft-lab:h2h:schedule:v1";
 try{games=parseScheduleCsv(localStorage.getItem(key)||"date,home,away");if(games.length)source="local";}catch{}
 for(const team of TEAMS){const option=document.createElement("option");option.value=team;option.textContent=team;get("filter").append(option);}
 function updateNineCat(){
  const body=get("ninecat-table").tBodies[0];body.replaceChildren();
  if(!projections||!roster.length||!opponent.length){get("ninecat-status").textContent="請先匯入雙方名單及預測 CSV";return;}
+ if(!games.length){get("ninecat-status").textContent="尚無可用 NBA 賽程，不能進行 9-Cat 預估";return;}
  const result=compareNineCat(games,roster,opponent,get("week").value,projections);
  const format=(value,category)=>value===null?"—":category.endsWith("%")?(value*100).toFixed(2)+"%":value.toFixed(1);
  for(const item of result.categories){const tr=document.createElement("tr");for(const value of [item.category,format(item.mine,item.category),format(item.opponent,item.category),item.result==="mine"?"我方":item.result==="opponent"?"對手":item.result==="tie"?"平手":"無法比較"]){const td=document.createElement("td");td.textContent=value;tr.append(td);}body.append(tr);}
@@ -56,7 +58,7 @@ function render(){
 function load(value){
  try{
   const parsed=parseScheduleCsv(value);if(!parsed.length)throw Error("沒有有效賽程");
-  localStorage.setItem(key,value);games=parsed;source="local";render();
+  localStorage.setItem(key,value);manualScheduleSelected=true;games=parsed;source="local";render();
  }catch(error){get("schedule-status").textContent="匯入失敗："+error.message;}
 }
 get("ninecat-import").addEventListener("click",()=>{try{projections=parseNineCatCsv(get("ninecat-paste").value);updateNineCat();}catch(error){projections=null;updateNineCat();get("ninecat-status").textContent="預測匯入失敗："+error.message;}});
@@ -67,4 +69,4 @@ get("schedule-file").addEventListener("change",async event=>{const file=event.ta
 get("week").addEventListener("change",render);
 get("filter").addEventListener("change",render);
 render();
-(async()=>{try{const response=await fetch("./data/nba-2026-27.csv",{cache:"force-cache"});if(!response.ok)throw Error("尚未提供整季賽程");const csv=await response.text();const parsed=parseScheduleCsv(csv);if(!parsed.length)throw Error("整季資料為空");games=parsed;source="official";render();}catch(error){get("schedule-status").textContent=games.length?"官方 CSV 載入失敗，目前顯示本機備援資料（"+games.length+" 場），請勿視為最新官方賽程。":"官方 CSV 載入失敗，尚無可用賽程。";}})();
+(async()=>{try{const response=await fetch("./data/nba-2026-27.csv",{cache:"force-cache"});if(!response.ok)throw Error("尚未提供整季賽程");const csv=await response.text();const parsed=parseScheduleCsv(csv);if(!parsed.length)throw Error("整季資料為空");if(!manualScheduleSelected){games=parsed;source="official";render();}}catch(error){get("schedule-status").textContent=games.length?"官方 CSV 載入失敗，目前顯示本機備援資料（"+games.length+" 場），請勿視為最新官方賽程。":"官方 CSV 載入失敗，尚無可用賽程。";}})();
