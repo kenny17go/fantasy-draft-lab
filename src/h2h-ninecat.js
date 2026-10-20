@@ -1,4 +1,6 @@
 import {rosterWeek} from "./h2h-roster.js";
+import {yahooProjectedToCsv} from "./yahoo-import.js";
+import {parseProjections} from "./projections.js";
 export const CATEGORIES=["FG%","FT%","3PM","PTS","REB","AST","STL","BLK","TO"];
 const fields=["name","fgm","fga","ftm","fta","threes","pts","reb","ast","stl","blk","to"];
 function number(value,label){const n=Number(value);if(value===""||!Number.isFinite(n)||n<0)throw Error("無效數值："+label);return n;}
@@ -19,6 +21,14 @@ export function parseNineCatCsv(text){
   map.set(key,stats);
  }
  return map;
+}
+/** Reuse existing Yahoo season-projection import; GP converts season totals to per-game values. */
+export function parseYahooNineCat(text){
+ const players=parseProjections(yahooProjectedToCsv(text));
+ return new Map(players.map(p=>[p.player.toLowerCase(),{
+  name:p.player,fgm:p.fgm,fga:p.fga,ftm:p.ftm,fta:p.fta,
+  threes:p.three,pts:p.pts,reb:p.reb,ast:p.ast,stl:p.stl,blk:p.blk,to:p.tov
+ }]));
 }
 export function projectRoster(games,roster,date,projections){
  const players=rosterWeek(games,roster,date),totals=Object.fromEntries(fields.slice(1).map(f=>[f,0]));
