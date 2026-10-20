@@ -3,7 +3,7 @@ import tempfile
 import unittest
 import sys
 sys.path.insert(0,str(pathlib.Path(__file__).resolve().parents[1]/"scripts"))
-from season_store import validate,publish,merge_cup
+from season_store import validate,publish,merge_cup,compare_schedule,restore_snapshot
 
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 class SeasonStoreTests(unittest.TestCase):
@@ -59,6 +59,25 @@ class SeasonStoreTests(unittest.TestCase):
             snapshots=list((folder/"archive"/"2026-27").glob("*.csv"))
             self.assertEqual(len(snapshots),1)
             self.assertEqual(snapshots[0].read_text(encoding="utf-8"),self.original)
+            self.assertEqual(target.read_text(encoding="utf-8"),self.original)
+    def test_compare_identical_has_no_changes(self):
+        report=compare_schedule(self.original,self.original,"2026-27")
+        self.assertEqual(report["added"],[])
+        self.assertEqual(report["removed"],[])
+        self.assertFalse(report["requires_manual_review"])
+    def test_restore_snapshot_verifies_hash(self):
+        import hashlib
+        with tempfile.TemporaryDirectory() as directory:
+            folder=pathlib.Path(directory)
+            snapshot=folder/"old.csv"
+            target=folder/"published.csv"
+            snapshot.write_text(self.original,encoding="utf-8")
+            target.write_text(self.original,encoding="utf-8")
+            digest=hashlib.sha256(snapshot.read_bytes()).hexdigest()
+            with self.assertRaises(ValueError):
+                restore_snapshot(snapshot,target,"2026-27","0"*64)
+            self.assertEqual(target.read_text(encoding="utf-8"),self.original)
+            restore_snapshot(snapshot,target,"2026-27",digest)
             self.assertEqual(target.read_text(encoding="utf-8"),self.original)
     def test_duplicate_rejected(self):
         with self.assertRaises(ValueError):
