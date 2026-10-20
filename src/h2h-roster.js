@@ -48,3 +48,11 @@ export function rosterWeek(games,roster,date){
  }
  return roster.map(p=>({...p,games:counts.get(p.team)||0}));
 }
+
+/** Compare scheduled games only, not 9-cat projections. */
+export function compareRosterWeeks(games,mine,opponent,date){
+ const a=rosterWeek(games,mine,date),b=rosterWeek(games,opponent,date);
+ const sum=rows=>rows.reduce((n,p)=>n+p.games,0);
+ return {mine:a,opponent:b,mineGames:sum(a),opponentGames:sum(b),
+         difference:sum(a)-sum(b)};
+}
