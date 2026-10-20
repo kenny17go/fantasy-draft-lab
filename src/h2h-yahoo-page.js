@@ -25,8 +25,8 @@ export function parseYahooPage(text){
    if(shotIndex<1||!/^\d+(?:\.\d+)?%$/.test(tail[shotIndex-2]||""))continue;
    const shot=tail[shotIndex].match(statsPattern),ft=tail[shotIndex+2]?.match(statsPattern);
    if(!ft)continue;
-   const values=tail.slice(shotIndex+4,shotIndex+12);
-   if(values.length!==8||values.some(v=>!/^[\d,.]+$/.test(v)))continue;
+   const values=tail.slice(shotIndex+4,shotIndex+11);
+   if(values.length!==7||values.some(v=>!/^[\d,.]+$/.test(v)))continue;
    const [three,pts,reb,ast,stl,blk,tov]=values.map(number);
    if([three,pts,reb,ast,stl,blk,tov].some(x=>!Number.isFinite(x)))continue;
    const [fgm,fga]=shot.slice(1).map(number),[ftm,fta]=ft.slice(1).map(number);
