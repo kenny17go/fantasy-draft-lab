@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {parseRoster,parseYahooTable,parsePastedRoster,rosterWeek,compareRosterWeeks} from "../src/h2h-roster.js";
+import {parseRoster,parseYahooTable,parsePastedRoster,matchProjectedPlayers,rosterWeek,compareRosterWeeks} from "../src/h2h-roster.js";
 test("roster paste maps explicit team codes and rejects unknown codes",()=>{
  const roster=parseRoster(["Player One, NY","Player Two\tGS"].join("\n"));
  assert.deepEqual(roster.map(x=>x.team),["NYK","GSW"]);
@@ -37,4 +37,11 @@ test("Yahoo named columns can appear in any order",()=>{
 });
 test("Yahoo named team column rejects non-NBA team codes",()=>{
  assert.throws(()=>parsePastedRoster("Player\tNBA Team\tPosition\nSomeone\tXXX\tPG"));
+});
+
+test("Yahoo projections match only explicitly mapped NBA teams",()=>{
+ const p=new Map([["alpha",{name:"Alpha"}],["beta",{name:"Beta"}]]);
+ const result=matchProjectedPlayers(p,[{name:"Alpha",team:"BOS"}]);
+ assert.deepEqual(result.matched,[{name:"Alpha",team:"BOS"}]);
+ assert.deepEqual(result.missing,["Beta"]);
 });
