@@ -1,8 +1,7 @@
-import {TEAMS,parseScheduleCsv,scheduleGrid,fetchEspnWeek,weekStart} from "./h2h-schedule.js";
+import {TEAMS,parseScheduleCsv,scheduleGrid} from "./h2h-schedule.js";
 const get=id=>document.getElementById(id);
 let games=[];
 const key="fantasy-draft-lab:h2h:schedule:v1";
-let loadedWeek=null;
 try{games=parseScheduleCsv(localStorage.getItem(key)||"date,home,away");}catch{}
 for(const team of TEAMS){const option=document.createElement("option");option.value=team;option.textContent=team;get("filter").append(option);}
 function render(){
@@ -26,20 +25,7 @@ function load(value){
 }
 get("parse-paste").addEventListener("click",()=>load(get("schedule-paste").value));
 get("schedule-file").addEventListener("change",async event=>{const file=event.target.files[0];if(file)load(await file.text());});
-async function refresh(){
- const button=get("fetch-schedule");button.disabled=true;get("schedule-status").textContent="正在取得 NBA 賽程…";
- try{
-  const fetched=await fetchEspnWeek(get("week").value);
-  const monday=weekStart(get("week").value);
-  const remaining=games.filter(g=>weekStart(g.date)!==monday);
-  const merged=[...remaining,...fetched].sort((a,b)=>a.date.localeCompare(b.date));
-  const csv=["date,home,away",...merged.map(g=>[g.date,g.home,g.away].join(","))].join("\n");
-  localStorage.setItem(key,csv);games=merged;loadedWeek=monday;render();
-  get("schedule-status").textContent="已從 ESPN 更新本週 "+fetched.length+" 場；資料已保存在本機。";
- }catch(error){render();get("schedule-status").textContent="自動更新失敗："+error.message+"；既有資料已保留，可用 CSV 備援。";}
- finally{button.disabled=false;}
-}
-get("fetch-schedule").addEventListener("click",refresh);
-get("week").addEventListener("change",()=>{render();refresh();});
+get("week").addEventListener("change",render);
 get("filter").addEventListener("change",render);
-render();refresh();
+render();
+(async()=>{try{const response=await fetch("./data/nba-2026-27.csv",{cache:"force-cache"});if(!response.ok)throw Error("尚未提供整季賽程");const csv=await response.text();const parsed=parseScheduleCsv(csv);if(!parsed.length)throw Error("整季資料為空");games=parsed;render();}catch(error){get("schedule-status").textContent="整季賽程尚未建置完成；可先匯入 CSV 測試。";}})();
