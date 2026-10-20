@@ -2,7 +2,8 @@ import {TEAMS,parseScheduleCsv,scheduleGrid,seasonGrid,backToBacks} from "./h2h-
 import {parsePastedRoster,rosterWeek,compareRosterWeeks} from "./h2h-roster.js";
 import {parseNineCatCsv,compareNineCat} from "./h2h-ninecat.js";
 const get=id=>document.getElementById(id);
-let games=[];\nlet source="none";
+let games=[];
+let source="none";
 let roster=[];
 let opponent=[];
 let projections=null;
@@ -58,9 +59,9 @@ function load(value){
   localStorage.setItem(key,value);games=parsed;source="local";render();
  }catch(error){get("schedule-status").textContent="匯入失敗："+error.message;}
 }
-get("ninecat-import").addEventListener("click",()=>{try{projections=parseNineCatCsv(get("ninecat-paste").value);updateNineCat();}catch(error){get("ninecat-status").textContent="預測匯入失敗："+error.message;}});
-get("roster-import").addEventListener("click",()=>{try{roster=parsePastedRoster(get("roster-paste").value);renderRoster();}catch(error){get("roster-status").textContent="名單匯入失敗："+error.message;}});
-get("compare-rosters").addEventListener("click",()=>{try{opponent=parsePastedRoster(get("opponent-paste").value);updateComparison();}catch(error){get("comparison-status").textContent="對手名單匯入失敗："+error.message;}});
+get("ninecat-import").addEventListener("click",()=>{try{projections=parseNineCatCsv(get("ninecat-paste").value);updateNineCat();}catch(error){projections=null;updateNineCat();get("ninecat-status").textContent="預測匯入失敗："+error.message;}});
+get("roster-import").addEventListener("click",()=>{try{roster=parsePastedRoster(get("roster-paste").value);renderRoster();}catch(error){roster=[];renderRoster();get("roster-status").textContent="名單匯入失敗："+error.message;}});
+get("compare-rosters").addEventListener("click",()=>{try{opponent=parsePastedRoster(get("opponent-paste").value);updateComparison();}catch(error){opponent=[];updateComparison();get("comparison-status").textContent="對手名單匯入失敗："+error.message;}});
 get("parse-paste").addEventListener("click",()=>load(get("schedule-paste").value));
 get("schedule-file").addEventListener("change",async event=>{const file=event.target.files[0];if(file)load(await file.text());});
 get("week").addEventListener("change",render);
