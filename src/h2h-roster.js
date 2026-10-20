@@ -10,7 +10,7 @@ export function parseRoster(text){
   const team=teamCode(parts[parts.length-1]);
   if(!TEAMS.includes(team))throw Error("無法辨識 NBA 球隊："+line);
   const name=parts.slice(0,-1).join(" ").trim();
-  if(!name||/^player|球員$/i.test(name))continue;
+  if(!name||/^(player|球員)$/i.test(name))continue;
   const key=name.toLowerCase();
   if(seen.has(key))throw Error("重複球員："+name);
   seen.add(key);rows.push({name,team});
