@@ -30,3 +30,11 @@ test("automatic roster format selection",()=>{
  assert.equal(parsePastedRoster("Player One, BOS")[0].team,"BOS");
  assert.equal(parsePastedRoster("Player\tTeam\tPos\nJayson Tatum\tBOS\tSF")[0].team,"BOS");
 });
+
+test("Yahoo named columns can appear in any order",()=>{
+ const input=["Status\tNBA Team\tPlayer\tPosition","Active\tBOS\tJayson Tatum\tSF","Bench\tGSW\tStephen Curry\tPG"].join("\n");
+ assert.deepEqual(parsePastedRoster(input),[{name:"Jayson Tatum",team:"BOS"},{name:"Stephen Curry",team:"GSW"}]);
+});
+test("Yahoo named team column rejects non-NBA team codes",()=>{
+ assert.throws(()=>parsePastedRoster("Player\tNBA Team\tPosition\nSomeone\tXXX\tPG"));
+});
