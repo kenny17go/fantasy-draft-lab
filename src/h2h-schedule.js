@@ -39,7 +39,8 @@ export function parseEspnSchedule(payload){
   if(!TEAMS.includes(home)||!TEAMS.includes(away)||home===away)continue;
   const timestamp=event.date||event.competitions?.[0]?.date;
   if(!timestamp||!Number.isFinite(Date.parse(timestamp)))continue;
-  const date=new Intl.DateTimeFormat("en-CA",{timeZone:"America/New_York",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(timestamp));
+  const parts=Object.fromEntries(new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date(timestamp)).map(p=>[p.type,p.value]));
+  const date=parts.year+"-"+parts.month+"-"+parts.day;
   const key=event.id||date+"|"+[home,away].sort().join("|");
   if(seen.has(key))continue;seen.add(key);
   games.push({date,home,away});
