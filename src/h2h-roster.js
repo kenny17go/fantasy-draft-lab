@@ -49,6 +49,15 @@ export function rosterWeek(games,roster,date){
  return roster.map(p=>({...p,games:counts.get(p.team)||0}));
 }
 
+/** Choose tabular Yahoo paste only when the first nonempty line has 3+ tab columns.
+ * Two-column tab rows are accepted by the simple name/team parser.
+ */
+export function parsePastedRoster(text){
+ const lines=String(text||"").split(/\r?\n/).filter(x=>x.trim());
+ if(!lines.length)return [];
+ const first=lines[0];
+ return first.split("\t").length>=3?parseYahooTable(text):parseRoster(text);
+}
 /** Compare scheduled games only, not 9-cat projections. */
 export function compareRosterWeeks(games,mine,opponent,date){
  const a=rosterWeek(games,mine,date),b=rosterWeek(games,opponent,date);
