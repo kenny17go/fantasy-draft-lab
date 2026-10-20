@@ -69,14 +69,21 @@ export function parsePastedRoster(text){
  * Never guess NBA affiliation from player names or fantasy positions.
  */
 export function matchProjectedPlayers(projections,roster){
- const teamByName=new Map(roster.map(p=>[p.name.trim().toLowerCase(),p.team]));
- const matched=[],missing=[];
+ const teamByName=new Map(),conflicts=new Set();
+ for(const p of roster){
+  const key=p.name.trim().toLowerCase(),team=teamCode(p.team);
+  if(!TEAMS.includes(team))throw Error("無法辨識 NBA 球隊："+p.name);
+  if(teamByName.has(key)&&teamByName.get(key)!==team)conflicts.add(key);
+  teamByName.set(key,team);
+ }
+ const matched=[],missing=[],ambiguous=[];
  for(const [key,p] of projections){
+  if(conflicts.has(key)){ambiguous.push(p.name);continue;}
   const team=teamByName.get(key);
   if(team)matched.push({name:p.name,team});
   else missing.push(p.name);
  }
- return {matched,missing};
+ return {matched,missing,ambiguous};
 }
 /** Compare scheduled games only, not 9-cat projections. */
 export function compareRosterWeeks(games,mine,opponent,date){
