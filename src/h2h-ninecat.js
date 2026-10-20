@@ -15,6 +15,7 @@ export function parseNineCatCsv(text){
   const key=name.toLowerCase();if(map.has(key))throw Error("重複球員："+name);
   const stats={name};for(const f of fields.slice(1))stats[f]=number(cells[header.indexOf(f)]??"",name+" "+f);
   if(stats.fgm>stats.fga||stats.ftm>stats.fta)throw Error("命中數不能大於出手數："+name);
+  if(stats.threes>stats.fgm)throw Error("三分命中不能大於投籃命中："+name);
   map.set(key,stats);
  }
  return map;
