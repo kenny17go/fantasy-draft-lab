@@ -1,13 +1,24 @@
 import {TEAMS,parseScheduleCsv,scheduleGrid,seasonGrid,backToBacks} from "./h2h-schedule.js";
 import {parsePastedRoster,rosterWeek,compareRosterWeeks} from "./h2h-roster.js";
+import {parseNineCatCsv,compareNineCat} from "./h2h-ninecat.js";
 const get=id=>document.getElementById(id);
 let games=[];\nlet source="none";
 let roster=[];
 let opponent=[];
+let projections=null;
 const key="fantasy-draft-lab:h2h:schedule:v1";
 try{games=parseScheduleCsv(localStorage.getItem(key)||"date,home,away");if(games.length)source="local";}catch{}
 for(const team of TEAMS){const option=document.createElement("option");option.value=team;option.textContent=team;get("filter").append(option);}
+function updateNineCat(){
+ const body=get("ninecat-table").tBodies[0];body.replaceChildren();
+ if(!projections||!roster.length||!opponent.length){get("ninecat-status").textContent="請先匯入雙方名單及預測 CSV";return;}
+ const result=compareNineCat(games,roster,opponent,get("week").value,projections);
+ const format=(value,category)=>value===null?"—":category.endsWith("%")?(value*100).toFixed(2)+"%":value.toFixed(1);
+ for(const item of result.categories){const tr=document.createElement("tr");for(const value of [item.category,format(item.mine,item.category),format(item.opponent,item.category),item.result==="mine"?"我方":item.result==="opponent"?"對手":item.result==="tie"?"平手":"無法比較"]){const td=document.createElement("td");td.textContent=value;tr.append(td);}body.append(tr);}
+ get("ninecat-status").textContent=result.complete?"預估數據完整；未考慮傷停、上場時間變動與 Yahoo 上場限制":`缺少預測：我方 ${result.mine.missing.join("、")||"無"}；對手 ${result.opponent.missing.join("、")||"無"}。結果不完整，不可視為正式勝負預測。`;
+}
 function updateComparison(){
+ updateNineCat();
  if(!roster.length||!opponent.length){get("comparison-status").textContent="請先匯入雙方名單";return;}
  const result=compareRosterWeeks(games,roster,opponent,get("week").value);
  get("comparison-status").textContent=`我方 ${result.mineGames} 場／對手 ${result.opponentGames} 場；場次差 ${result.difference>0?"+":""}${result.difference}（僅排定場次，非 9-Cat 勝率）`;
@@ -47,6 +58,7 @@ function load(value){
   localStorage.setItem(key,value);games=parsed;source="local";render();
  }catch(error){get("schedule-status").textContent="匯入失敗："+error.message;}
 }
+get("ninecat-import").addEventListener("click",()=>{try{projections=parseNineCatCsv(get("ninecat-paste").value);updateNineCat();}catch(error){get("ninecat-status").textContent="預測匯入失敗："+error.message;}});
 get("roster-import").addEventListener("click",()=>{try{roster=parsePastedRoster(get("roster-paste").value);renderRoster();}catch(error){get("roster-status").textContent="名單匯入失敗："+error.message;}});
 get("compare-rosters").addEventListener("click",()=>{try{opponent=parsePastedRoster(get("opponent-paste").value);updateComparison();}catch(error){get("comparison-status").textContent="對手名單匯入失敗："+error.message;}});
 get("parse-paste").addEventListener("click",()=>load(get("schedule-paste").value));
