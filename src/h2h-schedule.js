@@ -29,32 +29,3 @@ export function scheduleGrid(games,start){
  return {dates,rows:rows.map(r=>({...r,count:r.days.reduce((n,d)=>n+d.length,0)})),totalByDay:dates.map(date=>games.filter(g=>g.date===date).length)};
 }
 
-export function parseEspnSchedule(payload){
- const games=[],seen=new Set();
- for(const event of payload?.events||[]){
-  if(event.season?.type!==2 && event.season?.type!==undefined)continue;
-  const competitors=event.competitions?.[0]?.competitors||[];
-  const home=teamCode(competitors.find(c=>c.homeAway==="home")?.team?.abbreviation);
-  const away=teamCode(competitors.find(c=>c.homeAway==="away")?.team?.abbreviation);
-  if(!TEAMS.includes(home)||!TEAMS.includes(away)||home===away)continue;
-  const timestamp=event.date||event.competitions?.[0]?.date;
-  if(!timestamp||!Number.isFinite(Date.parse(timestamp)))continue;
-  const parts=Object.fromEntries(new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date(timestamp)).map(p=>[p.type,p.value]));
-  const date=parts.year+"-"+parts.month+"-"+parts.day;
-  const key=event.id||date+"|"+[home,away].sort().join("|");
-  if(seen.has(key))continue;seen.add(key);
-  games.push({date,home,away});
- }
- return games.sort((a,b)=>a.date.localeCompare(b.date));
-}
-export async function fetchEspnWeek(start,fetcher=fetch){
- const monday=weekStart(start),s=monday.replaceAll("-","");
- const end=new Date(monday+"T12:00:00Z");end.setUTCDate(end.getUTCDate()+6);
- const e=end.toISOString().slice(0,10).replaceAll("-","");
- const url="https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates="+s+"-"+e+"&limit=150";
- const response=await fetcher(url);
- if(!response.ok)throw Error("賽程來源回應 HTTP "+response.status);
- const payload=await response.json(),games=parseEspnSchedule(payload);
- if(!games.length)throw Error("此週未取得例行賽資料；請稍後再試或使用 CSV");
- return games;
-}
