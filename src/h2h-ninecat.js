@@ -32,10 +32,11 @@ export function projectRoster(games,roster,date,projections){
 export function compareNineCat(games,mine,opponent,date,projections){
  const a=projectRoster(games,mine,date,projections),b=projectRoster(games,opponent,date,projections);
  const keys=["fgPct","ftPct","threes","pts","reb","ast","stl","blk","to"];
+ const complete=a.complete&&b.complete;
  const categories=keys.map((key,i)=>{
   const left=key.endsWith("Pct")?a[key]:a.totals[key],right=key.endsWith("Pct")?b[key]:b.totals[key];
-  const result=left===null||right===null?"N/A":left===right?"tie":(key==="to"?left<right:left>right)?"mine":"opponent";
+  const result=!complete||left===null||right===null?"N/A":left===right?"tie":(key==="to"?left<right:left>right)?"mine":"opponent";
   return {category:CATEGORIES[i],mine:left,opponent:right,result};
  });
- return {mine:a,opponent:b,categories,complete:a.complete&&b.complete};
+ return {mine:a,opponent:b,categories,complete};
 }
