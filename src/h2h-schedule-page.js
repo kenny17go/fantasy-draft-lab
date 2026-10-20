@@ -1,5 +1,5 @@
 import {TEAMS,parseScheduleCsv,scheduleGrid,seasonGrid,backToBacks} from "./h2h-schedule.js";
-import {parseRoster,parseYahooTable,rosterWeek,compareRosterWeeks} from "./h2h-roster.js";
+import {parsePastedRoster,rosterWeek,compareRosterWeeks} from "./h2h-roster.js";
 const get=id=>document.getElementById(id);
 let games=[];\nlet source="none";
 let roster=[];
@@ -47,8 +47,8 @@ function load(value){
   localStorage.setItem(key,value);games=parsed;source="local";render();
  }catch(error){get("schedule-status").textContent="匯入失敗："+error.message;}
 }
-get("roster-import").addEventListener("click",()=>{try{roster=parseRoster(get("roster-paste").value);renderRoster();}catch(error){get("roster-status").textContent="名單匯入失敗："+error.message;}});
-get("compare-rosters").addEventListener("click",()=>{try{opponent=parseRoster(get("opponent-paste").value);updateComparison();}catch(error){get("comparison-status").textContent="對手名單匯入失敗："+error.message;}});
+get("roster-import").addEventListener("click",()=>{try{roster=parsePastedRoster(get("roster-paste").value);renderRoster();}catch(error){get("roster-status").textContent="名單匯入失敗："+error.message;}});
+get("compare-rosters").addEventListener("click",()=>{try{opponent=parsePastedRoster(get("opponent-paste").value);updateComparison();}catch(error){get("comparison-status").textContent="對手名單匯入失敗："+error.message;}});
 get("parse-paste").addEventListener("click",()=>load(get("schedule-paste").value));
 get("schedule-file").addEventListener("change",async event=>{const file=event.target.files[0];if(file)load(await file.text());});
 get("week").addEventListener("change",render);
