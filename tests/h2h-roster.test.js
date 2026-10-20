@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {parseRoster,parseYahooTable,rosterWeek,compareRosterWeeks} from "../src/h2h-roster.js";
+import {parseRoster,parseYahooTable,parsePastedRoster,rosterWeek,compareRosterWeeks} from "../src/h2h-roster.js";
 test("roster paste maps explicit team codes and rejects unknown codes",()=>{
  const roster=parseRoster(["Player One, NY","Player Two\tGS"].join("\n"));
  assert.deepEqual(roster.map(x=>x.team),["NYK","GSW"]);
@@ -24,4 +24,9 @@ test("weekly comparison reports scheduled game difference",()=>{
  assert.equal(result.mineGames,2);
  assert.equal(result.opponentGames,1);
  assert.equal(result.difference,1);
+});
+
+test("automatic roster format selection",()=>{
+ assert.equal(parsePastedRoster("Player One, BOS")[0].team,"BOS");
+ assert.equal(parsePastedRoster("Player\tTeam\tPos\nJayson Tatum\tBOS\tSF")[0].team,"BOS");
 });
