@@ -45,3 +45,10 @@ test("Yahoo projections match only explicitly mapped NBA teams",()=>{
  assert.deepEqual(result.matched,[{name:"Alpha",team:"BOS"}]);
  assert.deepEqual(result.missing,["Beta"]);
 });
+
+test("conflicting NBA affiliations are flagged, never silently overwritten",()=>{
+ const p=new Map([["alpha",{name:"Alpha"}]]);
+ const result=matchProjectedPlayers(p,[{name:"Alpha",team:"BOS"},{name:"Alpha",team:"NYK"}]);
+ assert.deepEqual(result.matched,[]);
+ assert.deepEqual(result.ambiguous,["Alpha"]);
+});
