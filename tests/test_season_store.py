@@ -13,7 +13,7 @@ class SeasonStoreTests(unittest.TestCase):
     def test_real_fixed_schedule(self):
         self.assertEqual(validate(self.original,"2026-27")["games"],1200)
     def test_cross_season_simulation(self):
-        simulated="\\n".join(
+        simulated=chr(10).join(
             str(int(line[:4])+1)+line[4:] if line[:4] in ("2026","2027") else line
             for line in self.original.splitlines()
         )
