@@ -19,4 +19,5 @@ test("missing projections never silently become zero estimates",()=>{
 });
 test("reject impossible shooting inputs",()=>{
  assert.throws(()=>parseNineCatCsv(csv.replace("Alpha,5,10","Alpha,11,10")));
+ assert.throws(()=>parseNineCatCsv(csv.replace("Alpha,5,10,3,4,2","Alpha,5,10,3,4,6")));
 });
