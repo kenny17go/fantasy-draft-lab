@@ -8,13 +8,14 @@ let source="none";
 let roster=[];
 let opponent=[];
 let projections=null;
+let projectionImportSummary="";
 let manualScheduleSelected=false;
 const key="fantasy-draft-lab:h2h:schedule:v1";
 try{games=parseScheduleCsv(localStorage.getItem(key)||"date,home,away");if(games.length)source="local";}catch{}
 for(const team of TEAMS){const option=document.createElement("option");option.value=team;option.textContent=team;get("filter").append(option);}
 function updateNineCat(){
  const body=get("ninecat-table").tBodies[0];body.replaceChildren();
- if(!projections||!roster.length||!opponent.length){get("ninecat-status").textContent="請先匯入雙方名單及預測 CSV";return;}
+ if(!projections||!roster.length||!opponent.length){get("ninecat-status").textContent=projections?projectionImportSummary+"；請再匯入雙方名單以進行比較":"請先匯入雙方名單及 Yahoo 預估表";return;}
  if(!games.length){get("ninecat-status").textContent="尚無可用 NBA 賽程，不能進行 9-Cat 預估";return;}
  const mapped=matchProjectedPlayers(projections,[...roster,...opponent]);
  if(mapped.ambiguous.length){get("ninecat-status").textContent="球員 NBA 球隊對照衝突："+mapped.ambiguous.join("、")+"；請確認交易後所屬球隊，再進行 9-Cat 比較";return;}
@@ -67,9 +68,9 @@ function load(value){
 get("ninecat-import").addEventListener("click",()=>{try{const input=get("ninecat-paste").value;if(/(?:^|\n)Pre-Season/.test(input)&&/(?:^|\n)[A-Z]{2,3} - (?:PG|SG|SF|PF|C)/m.test(input)){
  const parsed=parseYahooPage(input);
  projections=new Map(parsed.players.map(p=>[p.name.toLowerCase(),{name:p.name,fgm:p.fgm,fga:p.fga,ftm:p.ftm,fta:p.fta,threes:p.three,pts:p.pts,reb:p.reb,ast:p.ast,stl:p.stl,blk:p.blk,to:p.tov}]));
- get("ninecat-status").textContent="Yahoo 預估已匯入 "+parsed.players.length+" 名；未解析 "+parsed.failures.length+" 名";
- }else projections=/^\s*(players?|name)\s*[,\t]/i.test(input)?parseYahooNineCat(input):parseNineCatCsv(input);
- updateNineCat();}catch(error){projections=null;updateNineCat();get("ninecat-status").textContent="預測匯入失敗："+error.message;}});
+ projectionImportSummary="Yahoo 預估已匯入 "+parsed.players.length+" 名；未解析 "+parsed.failures.length+" 名"+(parsed.failures.length?"（"+parsed.failures.slice(0,5).join("、")+"）":"");
+ }else {projections=/^\s*(players?|name)\s*[,\t]/i.test(input)?parseYahooNineCat(input):parseNineCatCsv(input);projectionImportSummary="預估數據已匯入 "+projections.size+" 名";}
+ updateNineCat();}catch(error){projections=null;projectionImportSummary="";updateNineCat();get("ninecat-status").textContent="預測匯入失敗："+error.message;}});
 get("roster-import").addEventListener("click",()=>{try{roster=parsePastedRoster(get("roster-paste").value);renderRoster();}catch(error){roster=[];renderRoster();get("roster-status").textContent="名單匯入失敗："+error.message;}});
 get("compare-rosters").addEventListener("click",()=>{try{opponent=parsePastedRoster(get("opponent-paste").value);updateComparison();}catch(error){opponent=[];updateComparison();get("comparison-status").textContent="對手名單匯入失敗："+error.message;}});
 get("parse-paste").addEventListener("click",()=>load(get("schedule-paste").value));
