@@ -38,6 +38,11 @@ def validate(text, season, stage="fixed"):
     else: raise ValueError("Unknown stage")
     return {"games":len(rows),"teams":len(counts),"min_team_games":min(counts.values()),"max_team_games":max(counts.values())}
 
+def review_cup_candidate(base_text,candidate_text,season):
+    """Review complete official candidate; only append-only changes are auto-eligible."""
+    diff=compare_schedule(base_text,candidate_text,season)
+    return {**diff,"auto_eligible":not diff["requires_manual_review"] and bool(diff["added"])}
+
 def merge_cup(base_text, additions_text, season):
     """Add official Cup fixtures without mutating the fixed schedule.
 
