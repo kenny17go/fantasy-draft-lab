@@ -11,8 +11,8 @@ export function parseScheduleCsv(text){
  const games=[],seen=new Set();
  for(const line of lines){
   const cells=line.split(",").map(x=>x.trim()),date=cells[col("date")],home=teamCode(cells[col("home")]),away=teamCode(cells[col("away")]);
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(Date.parse(date+"T12:00:00Z"))||!TEAMS.includes(home)||!TEAMS.includes(away)||home===away)throw Error("賽程資料有誤："+line);
-  const key=date+"|"+[home,away].sort().join("|");if(seen.has(key))continue;seen.add(key);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(Date.parse(date+"T12:00:00Z"))||new Date(date+"T12:00:00Z").toISOString().slice(0,10)!==date||!TEAMS.includes(home)||!TEAMS.includes(away)||home===away)throw Error("賽程資料有誤："+line);
+  const key=date+"|"+[home,away].sort().join("|");if(seen.has(key))throw Error("重複賽程："+line);seen.add(key);
   games.push({date,home,away});
  }
  return games.sort((a,b)=>a.date.localeCompare(b.date));
