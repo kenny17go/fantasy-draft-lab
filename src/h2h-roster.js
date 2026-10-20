@@ -56,7 +56,8 @@ export function parsePastedRoster(text){
  const lines=String(text||"").split(/\r?\n/).filter(x=>x.trim());
  if(!lines.length)return [];
  const first=lines[0];
- return first.split("\t").length>=3?parseYahooTable(text):parseRoster(text);
+ if(first.split("\t").length>=3)return parseYahooTable(text);
+ return parseRoster(text);
 }
 /** Compare scheduled games only, not 9-cat projections. */
 export function compareRosterWeeks(games,mine,opponent,date){
