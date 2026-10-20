@@ -36,4 +36,4 @@ get("schedule-file").addEventListener("change",async event=>{const file=event.ta
 get("week").addEventListener("change",render);
 get("filter").addEventListener("change",render);
 render();
-(async()=>{try{const response=await fetch("./data/nba-2026-27.csv",{cache:"force-cache"});if(!response.ok)throw Error("尚未提供整季賽程");const csv=await response.text();const parsed=parseScheduleCsv(csv);if(!parsed.length)throw Error("整季資料為空");games=parsed;render();}catch(error){get("schedule-status").textContent=games.length?"官方 CSV 載入失敗，目前顯示本機備援資料（"+games.length+" 場），請勿視為最新官方賽程。":"官方 CSV 載入失敗，尚無可用賽程。";}})();
+(async()=>{try{const response=await fetch("./data/nba-2026-27.csv",{cache:"force-cache"});if(!response.ok)throw Error("尚未提供整季賽程");const csv=await response.text();const parsed=parseScheduleCsv(csv);if(!parsed.length)throw Error("整季資料為空");games=parsed;source="official";render();}catch(error){get("schedule-status").textContent=games.length?"官方 CSV 載入失敗，目前顯示本機備援資料（"+games.length+" 場），請勿視為最新官方賽程。":"官方 CSV 載入失敗，尚無可用賽程。";}})();
