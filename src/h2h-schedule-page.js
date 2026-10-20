@@ -15,8 +15,9 @@ function updateNineCat(){
  const body=get("ninecat-table").tBodies[0];body.replaceChildren();
  if(!projections||!roster.length||!opponent.length){get("ninecat-status").textContent="請先匯入雙方名單及預測 CSV";return;}
  if(!games.length){get("ninecat-status").textContent="尚無可用 NBA 賽程，不能進行 9-Cat 預估";return;}
- const result=compareNineCat(games,roster,opponent,get("week").value,projections);
  const mapped=matchProjectedPlayers(projections,[...roster,...opponent]);
+ if(mapped.ambiguous.length){get("ninecat-status").textContent="球員 NBA 球隊對照衝突："+mapped.ambiguous.join("、")+"；請確認交易後所屬球隊，再進行 9-Cat 比較";return;}
+ const result=compareNineCat(games,roster,opponent,get("week").value,projections);
  const format=(value,category)=>value===null?"—":category.endsWith("%")?(value*100).toFixed(2)+"%":value.toFixed(1);
  for(const item of result.categories){const tr=document.createElement("tr");for(const value of [item.category,format(item.mine,item.category),format(item.opponent,item.category),item.result==="mine"?"我方":item.result==="opponent"?"對手":item.result==="tie"?"平手":"無法比較"]){const td=document.createElement("td");td.textContent=value;tr.append(td);}body.append(tr);}
  get("ninecat-status").textContent=result.complete?`雙方名單預估數據完整；共對應 ${mapped.matched.length} 名球員（其他 ${mapped.missing.length} 名預估球員未列入雙方名單）；未考慮傷停、上場時間變動與 Yahoo 上場限制`:`缺少預測（共 ${result.mine.missing.length+result.opponent.missing.length} 名）：我方 ${result.mine.missing.join("、")||"無"}；對手 ${result.opponent.missing.join("、")||"無"}。結果不完整，不可視為正式勝負預測。`;
