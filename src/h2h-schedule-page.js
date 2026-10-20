@@ -1,10 +1,19 @@
 import {TEAMS,parseScheduleCsv,scheduleGrid,seasonGrid,backToBacks} from "./h2h-schedule.js";
+import {parseRoster,rosterWeek} from "./h2h-roster.js";
 const get=id=>document.getElementById(id);
 let games=[];\nlet source="none";
+let roster=[];
 const key="fantasy-draft-lab:h2h:schedule:v1";
 try{games=parseScheduleCsv(localStorage.getItem(key)||"date,home,away");if(games.length)source="local";}catch{}
 for(const team of TEAMS){const option=document.createElement("option");option.value=team;option.textContent=team;get("filter").append(option);}
+function renderRoster(){
+ const body=get("roster-table").tBodies[0];body.replaceChildren();
+ const rows=rosterWeek(games,roster,get("week").value);
+ for(const player of rows){const tr=document.createElement("tr");for(const value of [player.name,player.team,player.games]){const td=document.createElement("td");td.textContent=value;tr.append(td);}body.append(tr);}
+ get("roster-status").textContent=roster.length?`已匯入 ${roster.length} 名球員；本週排定場次合計 ${rows.reduce((sum,p)=>sum+p.games,0)}（未扣除傷停、輪休與 Yahoo 上場限制）`:"尚未匯入球員名單";
+}
 function render(){
+ renderRoster();
  const season=seasonGrid(games);
  const seasonHead=get("season-table").tHead,seasonBody=get("season-table").tBodies[0];
  seasonHead.replaceChildren();seasonBody.replaceChildren();
@@ -31,6 +40,7 @@ function load(value){
   localStorage.setItem(key,value);games=parsed;source="local";render();
  }catch(error){get("schedule-status").textContent="匯入失敗："+error.message;}
 }
+get("roster-import").addEventListener("click",()=>{try{roster=parseRoster(get("roster-paste").value);renderRoster();}catch(error){get("roster-status").textContent="名單匯入失敗："+error.message;}});
 get("parse-paste").addEventListener("click",()=>load(get("schedule-paste").value));
 get("schedule-file").addEventListener("change",async event=>{const file=event.target.files[0];if(file)load(await file.text());});
 get("week").addEventListener("change",render);
