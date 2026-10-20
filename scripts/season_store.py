@@ -103,6 +103,31 @@ def publish(source,target,season,stage,archive_dir=None):
         if os.path.exists(name): os.unlink(name)
     return result
 
+def compare_schedule(old_text,new_text,season):
+    """Return a reviewable diff; never guess whether changed dates are the same game."""
+    validate(old_text,season,"cup" if len(list(csv.DictReader(io.StringIO(old_text))))>1200 else "fixed")
+    validate(new_text,season,"cup" if len(list(csv.DictReader(io.StringIO(new_text))))>1200 else "fixed")
+    def rows(text):
+        return {(r["date"],r["home"],r["away"]) for r in csv.DictReader(io.StringIO(text))}
+    old,new=rows(old_text),rows(new_text)
+    removed=sorted(old-new)
+    added=sorted(new-old)
+    return {"added":[{"date":d,"home":h,"away":a} for d,h,a in added],
+            "removed":[{"date":d,"home":h,"away":a} for d,h,a in removed],
+            "requires_manual_review":bool(removed),
+            "unchanged":len(old&new)}
+
+def restore_snapshot(snapshot,target,season,expected_sha256):
+    """Explicit SHA-256 guarded rollback. Archive current target before restore."""
+    import hashlib
+    if not re.fullmatch(r"[0-9a-f]{64}",expected_sha256):
+        raise ValueError("Invalid expected SHA-256")
+    data=snapshot.read_bytes()
+    if hashlib.sha256(data).hexdigest()!=expected_sha256:
+        raise ValueError("Snapshot digest mismatch")
+    validate(data.decode("utf-8"),season,"cup" if len(list(csv.DictReader(io.StringIO(data.decode("utf-8")))))>1200 else "fixed")
+    return publish(snapshot,target,season,"cup" if len(list(csv.DictReader(io.StringIO(data.decode("utf-8")))))>1200 else "fixed")
+
 if __name__=="__main__":
     p=argparse.ArgumentParser()
     p.add_argument("--source",type=pathlib.Path,required=True)
