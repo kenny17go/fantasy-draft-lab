@@ -1,6 +1,6 @@
 import {TEAMS,parseScheduleCsv,scheduleGrid,seasonGrid,backToBacks} from "./h2h-schedule.js";
 import {parsePastedRoster,rosterWeek,compareRosterWeeks} from "./h2h-roster.js";
-import {parseNineCatCsv,compareNineCat} from "./h2h-ninecat.js";
+import {parseNineCatCsv,parseYahooNineCat,compareNineCat} from "./h2h-ninecat.js";
 const get=id=>document.getElementById(id);
 let games=[];
 let source="none";
@@ -61,7 +61,7 @@ function load(value){
   localStorage.setItem(key,value);manualScheduleSelected=true;games=parsed;source="local";render();
  }catch(error){get("schedule-status").textContent="匯入失敗："+error.message;}
 }
-get("ninecat-import").addEventListener("click",()=>{try{projections=parseNineCatCsv(get("ninecat-paste").value);updateNineCat();}catch(error){projections=null;updateNineCat();get("ninecat-status").textContent="預測匯入失敗："+error.message;}});
+get("ninecat-import").addEventListener("click",()=>{try{const input=get("ninecat-paste").value;projections=/^\s*(players?|name)\s*[,\t]/i.test(input)?parseYahooNineCat(input):parseNineCatCsv(input);updateNineCat();}catch(error){projections=null;updateNineCat();get("ninecat-status").textContent="預測匯入失敗："+error.message;}});
 get("roster-import").addEventListener("click",()=>{try{roster=parsePastedRoster(get("roster-paste").value);renderRoster();}catch(error){roster=[];renderRoster();get("roster-status").textContent="名單匯入失敗："+error.message;}});
 get("compare-rosters").addEventListener("click",()=>{try{opponent=parsePastedRoster(get("opponent-paste").value);updateComparison();}catch(error){opponent=[];updateComparison();get("comparison-status").textContent="對手名單匯入失敗："+error.message;}});
 get("parse-paste").addEventListener("click",()=>load(get("schedule-paste").value));
