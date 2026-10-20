@@ -27,6 +27,17 @@ class SeasonStoreTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 publish(bad,target,"2026-27","fixed")
             self.assertEqual(target.read_text(encoding="utf-8"),self.original)
+    def test_cup_merge_adds_one_valid_game(self):
+        import csv,io,collections
+        original=list(csv.DictReader(io.StringIO(self.original)))
+        count=collections.Counter(team for r in original for team in (r["home"],r["away"]))
+        candidates=[a for a in sorted(count) if count[a]==80]
+        existing={(r["date"],frozenset((r["home"],r["away"]))) for r in original}
+        date="2027-01-01"
+        pair=next((a,b) for a in candidates for b in candidates if a<b and (date,frozenset((a,b))) not in existing)
+        extra="date,home,away"+chr(10)+date+","+pair[0]+","+pair[1]+chr(10)
+        merged=merge_cup(self.original,extra,"2026-27")
+        self.assertEqual(validate(merged,"2026-27","cup")["games"],1201)
     def test_cup_duplicate_rejected(self):
         first=self.original.splitlines()[1]
         with self.assertRaises(ValueError):
