@@ -1,6 +1,7 @@
 import {TEAMS,parseScheduleCsv,scheduleGrid,seasonGrid,backToBacks} from "./h2h-schedule.js";
 import {parsePastedRoster,matchProjectedPlayers,rosterWeek,compareRosterWeeks} from "./h2h-roster.js";
 import {parseNineCatCsv,parseYahooNineCat,compareNineCat} from "./h2h-ninecat.js";
+import {parseYahooPage} from "./h2h-yahoo-page.js";
 const get=id=>document.getElementById(id);
 let games=[];
 let source="none";
@@ -63,7 +64,12 @@ function load(value){
   localStorage.setItem(key,value);manualScheduleSelected=true;games=parsed;source="local";render();
  }catch(error){get("schedule-status").textContent="匯入失敗："+error.message;}
 }
-get("ninecat-import").addEventListener("click",()=>{try{const input=get("ninecat-paste").value;projections=/^\s*(players?|name)\s*[,\t]/i.test(input)?parseYahooNineCat(input):parseNineCatCsv(input);updateNineCat();}catch(error){projections=null;updateNineCat();get("ninecat-status").textContent="預測匯入失敗："+error.message;}});
+get("ninecat-import").addEventListener("click",()=>{try{const input=get("ninecat-paste").value;if(/(?:^|\n)Pre-Season/.test(input)&&/(?:^|\n)[A-Z]{2,3} - (?:PG|SG|SF|PF|C)/m.test(input)){
+ const parsed=parseYahooPage(input);
+ projections=new Map(parsed.players.map(p=>[p.name.toLowerCase(),{name:p.name,fgm:p.fgm,fga:p.fga,ftm:p.ftm,fta:p.fta,threes:p.three,pts:p.pts,reb:p.reb,ast:p.ast,stl:p.stl,blk:p.blk,to:p.tov}]));
+ get("ninecat-status").textContent="Yahoo 預估已匯入 "+parsed.players.length+" 名；未解析 "+parsed.failures.length+" 名";
+ }else projections=/^\s*(players?|name)\s*[,\t]/i.test(input)?parseYahooNineCat(input):parseNineCatCsv(input);
+ updateNineCat();}catch(error){projections=null;updateNineCat();get("ninecat-status").textContent="預測匯入失敗："+error.message;}});
 get("roster-import").addEventListener("click",()=>{try{roster=parsePastedRoster(get("roster-paste").value);renderRoster();}catch(error){roster=[];renderRoster();get("roster-status").textContent="名單匯入失敗："+error.message;}});
 get("compare-rosters").addEventListener("click",()=>{try{opponent=parsePastedRoster(get("opponent-paste").value);updateComparison();}catch(error){opponent=[];updateComparison();get("comparison-status").textContent="對手名單匯入失敗："+error.message;}});
 get("parse-paste").addEventListener("click",()=>load(get("schedule-paste").value));
