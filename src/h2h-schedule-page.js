@@ -1,8 +1,8 @@
 import {TEAMS,parseScheduleCsv,scheduleGrid} from "./h2h-schedule.js";
 const get=id=>document.getElementById(id);
-let games=[];
+let games=[];\nlet source="none";
 const key="fantasy-draft-lab:h2h:schedule:v1";
-try{games=parseScheduleCsv(localStorage.getItem(key)||"date,home,away");}catch{}
+try{games=parseScheduleCsv(localStorage.getItem(key)||"date,home,away");if(games.length)source="local";}catch{}
 for(const team of TEAMS){const option=document.createElement("option");option.value=team;option.textContent=team;get("filter").append(option);}
 function render(){
  const grid=scheduleGrid(games,get("week").value);
@@ -15,12 +15,12 @@ function render(){
   const tr=addRow(body,[row.team,row.count,...row.days.map(x=>x.join(" / ")||"—")],"td");
   tr.cells[1].className=row.count>=4?"count4":row.count<=2?"count2":"";
  }
- get("schedule-status").textContent=games.length?"已載入 "+games.length+" 場；本週 "+grid.totalByDay.reduce((a,b)=>a+b,0)+" 場":"尚未匯入賽程資料";
+ get("schedule-status").textContent=games.length?"資料來源："+(source==="official"?"官方內建 CSV":source==="local"?"本機匯入（備援）":"未知")+"；已載入 "+games.length+" 場；本週 "+grid.totalByDay.reduce((a,b)=>a+b,0)+" 場":"尚未匯入賽程資料";
 }
 function load(value){
  try{
   const parsed=parseScheduleCsv(value);if(!parsed.length)throw Error("沒有有效賽程");
-  localStorage.setItem(key,value);games=parsed;render();
+  localStorage.setItem(key,value);games=parsed;source="local";render();
  }catch(error){get("schedule-status").textContent="匯入失敗："+error.message;}
 }
 get("parse-paste").addEventListener("click",()=>load(get("schedule-paste").value));
@@ -28,4 +28,4 @@ get("schedule-file").addEventListener("change",async event=>{const file=event.ta
 get("week").addEventListener("change",render);
 get("filter").addEventListener("change",render);
 render();
-(async()=>{try{const response=await fetch("./data/nba-2026-27.csv",{cache:"force-cache"});if(!response.ok)throw Error("尚未提供整季賽程");const csv=await response.text();const parsed=parseScheduleCsv(csv);if(!parsed.length)throw Error("整季資料為空");games=parsed;render();}catch(error){get("schedule-status").textContent="整季賽程尚未建置完成；可先匯入 CSV 測試。";}})();
+(async()=>{try{const response=await fetch("./data/nba-2026-27.csv",{cache:"force-cache"});if(!response.ok)throw Error("尚未提供整季賽程");const csv=await response.text();const parsed=parseScheduleCsv(csv);if(!parsed.length)throw Error("整季資料為空");games=parsed;render();}catch(error){get("schedule-status").textContent=games.length?"官方 CSV 載入失敗，目前顯示本機備援資料（"+games.length+" 場），請勿視為最新官方賽程。":"官方 CSV 載入失敗，尚無可用賽程。";}})();
