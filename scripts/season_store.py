@@ -57,7 +57,7 @@ def merge_cup(base_text, additions_text, season):
             raise ValueError("Duplicate or already published Cup fixture")
         new.add(key)
     output=io.StringIO()
-    writer=csv.DictWriter(output,fieldnames=["date","home","away"],lineterminator="\\n")
+    writer=csv.DictWriter(output,fieldnames=["date","home","away"],lineterminator=chr(10))
     writer.writeheader()
     writer.writerows(sorted(base+additions,key=lambda r:(r["date"],r["home"],r["away"])))
     merged=output.getvalue()
