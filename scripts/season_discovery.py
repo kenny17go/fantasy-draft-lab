@@ -4,7 +4,6 @@ import argparse
 import datetime as dt
 import json
 import pathlib
-import re
 
 def current_season(today):
     year=today.year if today.month>=7 else today.year-1
@@ -13,9 +12,9 @@ def current_season(today):
 def discover(data_dir,today):
     published={}
     for path in data_dir.glob("nba-????-??.csv"):
-        match=re.fullmatch(r"nba-(20\\d{2}-\\d{2})\\.csv",path.name)
-        if match:
-            published[match.group(1)]=path.name
+        season=path.stem.removeprefix("nba-")
+        if len(season)==7 and season[:4].isdigit() and season[4]=="-" and season[5:].isdigit() and season.startswith("20") and int(season[5:])==(int(season[:4])+1)%100:
+            published[season]=path.name
     target=current_season(today)
     return {"target_season":target,"published_seasons":sorted(published),
             "requires_official_source_review":target not in published,
