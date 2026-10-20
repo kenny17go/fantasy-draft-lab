@@ -21,3 +21,10 @@ test("reject impossible shooting inputs",()=>{
  assert.throws(()=>parseNineCatCsv(csv.replace("Alpha,5,10","Alpha,11,10")));
  assert.throws(()=>parseNineCatCsv(csv.replace("Alpha,5,10,3,4,2","Alpha,5,10,3,4,6")));
 });
+
+test("missing projection for zero-game player does not invalidate matchup",()=>{
+ const p=parseNineCatCsv(csv);
+ const result=compareNineCat(games,[{name:"Alpha",team:"NYK"},{name:"No Game",team:"LAL"}],[{name:"Beta",team:"BOS"}],"2026-10-20",p);
+ assert.equal(result.complete,true);
+ assert.deepEqual(result.mine.missing,[]);
+});
