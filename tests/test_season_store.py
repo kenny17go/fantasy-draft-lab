@@ -48,6 +48,18 @@ class SeasonStoreTests(unittest.TestCase):
     def test_cup_rejects_missing_additions(self):
         with self.assertRaises(ValueError):
             merge_cup(self.original,"date,home,away"+chr(10),"2026-27")
+    def test_publish_archives_previous_version(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder=pathlib.Path(directory)
+            source=folder/"source.csv"
+            target=folder/"published.csv"
+            source.write_text(self.original,encoding="utf-8")
+            target.write_text(self.original,encoding="utf-8")
+            publish(source,target,"2026-27","fixed")
+            snapshots=list((folder/"archive"/"2026-27").glob("*.csv"))
+            self.assertEqual(len(snapshots),1)
+            self.assertEqual(snapshots[0].read_text(encoding="utf-8"),self.original)
+            self.assertEqual(target.read_text(encoding="utf-8"),self.original)
     def test_duplicate_rejected(self):
         with self.assertRaises(ValueError):
             validate(self.original+self.original.splitlines()[1]+"\n","2026-27")
