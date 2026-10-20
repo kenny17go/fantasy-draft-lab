@@ -25,7 +25,7 @@ export function projectRoster(games,roster,date,projections){
  const missing=[];
  for(const p of players){
   const stats=projections.get(p.name.toLowerCase());
-  if(!stats){missing.push(p.name);continue;}
+  if(!stats){if(p.games>0)missing.push(p.name);continue;}
   for(const f of fields.slice(1))totals[f]+=stats[f]*p.games;
  }
  return {players,missing,totals,fgPct:totals.fga?totals.fgm/totals.fga:null,ftPct:totals.fta?totals.ftm/totals.fta:null,complete:missing.length===0};
