@@ -1,5 +1,9 @@
 name: Build NBA 2026-27 season schedule
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/build-nba-season.yml'
+      - 'scripts/build_nba_schedule.py'
   workflow_dispatch:
 jobs:
   schedule:
