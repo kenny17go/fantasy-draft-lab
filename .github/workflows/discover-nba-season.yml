@@ -1,0 +1,23 @@
+name: Discover NBA season (read-only)
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Report season status
+        run: |
+          python3 scripts/season_discovery.py | tee season-status.json
+          cat season-status.json >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: season-discovery-report
+          path: season-status.json
