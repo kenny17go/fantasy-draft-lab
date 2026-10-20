@@ -1,0 +1,21 @@
+name: Build NBA 2026-27 season schedule
+on:
+  workflow_dispatch:
+jobs:
+  schedule:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download official NBA schedule
+        run: |
+          curl --fail --location --retry 3 --output /tmp/nba-schedule.pdf 'https://ak-static.cms.nba.com/wp-content/uploads/sites/46/2026/08/2026-27-NBA-Regular-Season-Schedule-By-Date.pdf'
+          test -s /tmp/nba-schedule.pdf
+          pdftotext -layout /tmp/nba-schedule.pdf /tmp/nba-schedule.txt
+      - name: Extract and validate fixed games
+        run: python3 scripts/build_nba_schedule.py /tmp/nba-schedule.txt data/nba-2026-27.csv
+      - name: Upload validated CSV artifact for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: nba-2026-27-validated-schedule
+          path: data/nba-2026-27.csv
+          if-no-files-found: error
