@@ -4,15 +4,15 @@ export const playerKey=name=>String(name||"").normalize("NFKD").replace(/[\u0300
 // Supports pasted FantasyPros Yahoo rankings (e.g. "N. Jokic (DEN - C)") and CSV.
 export function parsePlayerTeams(text,knownNames=[]){
  const result={},errors=[],unresolved=[],ambiguous=[];
- const names=knownNames.map(name=>({name,key:playerKey(name),parts:String(name).normalize("NFKD").replace(/[\\u0300-\\u036f]/g,"").toLowerCase().replace(/[^a-z0-9 ]/g,"").trim().split(/\\s+/)}));
- const ranking=/^(.+?)\\s*\\(([A-Z]{2,4})\\s*-\\s*(?:PG|SG|SF|PF|C|G|F)(?:\\s*,\\s*(?:PG|SG|SF|PF|C|G|F))*\\)/;
- for(const [i,raw] of String(text||"").split(/\\r?\\n/).entries()){
+ const names=knownNames.map(name=>({name,key:playerKey(name),parts:String(name).normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9 ]/g,"").trim().split(/\s+/)}));
+ const ranking=/^(.+?)\s*\(([A-Z]{2,4})\s*-\s*(?:PG|SG|SF|PF|C|G|F)(?:\s*,\s*(?:PG|SG|SF|PF|C|G|F))*\)/;
+ for(const [i,raw] of String(text||"").split(/\r?\n/).entries()){
   const line=raw.trim();
   let name,code;
-  const rank=ranking.exec(line.replace(/^\\d+\\s+/,""));
+  const rank=ranking.exec(line.replace(/^\d+\s+/,""));
   if(rank){name=rank[1].trim();code=rank[2];}
   else{
-   const parts=line.split(/[\\t,]/).map(x=>x.trim().replace(/^["']|["']$/g,""));
+   const parts=line.split(/[\t,]/).map(x=>x.trim().replace(/^["']|["']$/g,""));
    if(parts.length<2||!parts[0]||/^(player|name|球員)$/i.test(parts[0]))continue;
    name=parts[0];code=parts[1];
    if(!/^[A-Za-z]{2,4}$/.test(code))continue;
@@ -24,7 +24,7 @@ export function parsePlayerTeams(text,knownNames=[]){
    const exact=names.filter(p=>p.key===key);
    let matches=exact;
    if(!matches.length){
-    const m=/^([A-Za-z])\\.\\s*(.+)$/.exec(name);
+    const m=/^([A-Za-z])\.\s*(.+)$/.exec(name);
     if(m){
      const last=playerKey(m[2]);
      matches=names.filter(p=>p.parts[0]?.startsWith(m[1].toLowerCase())&&playerKey(p.parts.slice(1).join("")).endsWith(last));
