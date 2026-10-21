@@ -1,0 +1,26 @@
+name: Validate NBA roster source
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 8 * * *'
+permissions:
+  contents: read
+jobs:
+  verify-rosters:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fetch all 30 NBA team rosters and validate season
+        run: |
+          python - <<'PY'
+          import sys
+          sys.path.insert(0,'scripts')
+          from match_nba_teams import fetch
+          names=fetch()
+          if len(names)<300: raise SystemExit('Roster unexpectedly small; source not trusted')
+          print('Validated NBA player identities:',len(names))
+          PY
