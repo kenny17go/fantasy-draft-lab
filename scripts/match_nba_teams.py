@@ -17,7 +17,9 @@ def fetch():
   athletes=data.get('athletes',[])
   if not athletes:raise ValueError('Missing roster for '+code+'; abort without writing')
   season=data.get('season',{})
-  if season.get('year')!=2027:raise ValueError('Unexpected season for '+code+': '+str(season))
+  # ESPN roster responses may omit season or label the 2026-27 season by its start year.
+  year=season.get('year') if isinstance(season,dict) else None
+  if year is not None and int(year) not in (2026,2027):raise ValueError('Unexpected season for '+code+': '+str(season))
   for athlete in athletes:
    name=athlete.get('fullName') or athlete.get('displayName')
    if name:names.setdefault(norm(name),set()).add(ALIASES.get(code,code.upper()))
