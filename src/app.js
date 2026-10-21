@@ -74,7 +74,7 @@ function setTab(tab){
  });
  window.scrollTo({top:0,behavior:"instant"});
 }
-document.querySelectorAll(".app-tabs [data-tab]").forEach(b=>b.addEventListener("click",()=>setTab(b.dataset.tab)));
+document.querySelectorAll(".app-tabs [data-tab]").forEach(b=>b.addEventListener("click",()=>{if(b.dataset.tab==="live"){window.location.href="./h2h-il.html";return;}setTab(b.dataset.tab);}));
 renderTeamNameFields();
 const punt=new Set();
 let rankingSort={column:4,ascending:false};
