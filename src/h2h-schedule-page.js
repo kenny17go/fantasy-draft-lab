@@ -1,3 +1,4 @@
+import {parsePlayerTeams,savedTeams,saveTeams,loadOnlineTeams,fillRosterTeams} from "./h2h-player-teams.js";
 import {TEAMS,parseScheduleCsv,scheduleGrid,seasonGrid,backToBacks} from "./h2h-schedule.js";
 import {parsePastedRoster,matchProjectedPlayers,rosterWeek,compareRosterWeeks} from "./h2h-roster.js";
 import {parseNineCatCsv,parseYahooNineCat,compareNineCat} from "./h2h-ninecat.js";
@@ -71,8 +72,11 @@ get("ninecat-import").addEventListener("click",()=>{try{const input=get("ninecat
  projectionImportSummary="Yahoo 預估已匯入 "+parsed.players.length+" 名；未解析 "+parsed.failures.length+" 名"+(parsed.failures.length?"（"+parsed.failures.slice(0,5).join("、")+"）":"");
  }else {projections=/^\s*(players?|name)\s*[,\t]/i.test(input)?parseYahooNineCat(input):parseNineCatCsv(input);projectionImportSummary="預估數據已匯入 "+projections.size+" 名";}
  updateNineCat();}catch(error){projections=null;projectionImportSummary="";updateNineCat();get("ninecat-status").textContent="預測匯入失敗："+error.message;}});
-get("roster-import").addEventListener("click",()=>{try{roster=parsePastedRoster(get("roster-paste").value);renderRoster();}catch(error){roster=[];renderRoster();get("roster-status").textContent="名單匯入失敗："+error.message;}});
-get("compare-rosters").addEventListener("click",()=>{try{opponent=parsePastedRoster(get("opponent-paste").value);updateComparison();}catch(error){opponent=[];updateComparison();get("comparison-status").textContent="對手名單匯入失敗："+error.message;}});
+get("team-file").addEventListener("change",async e=>{const f=e.target.files[0];if(f)get("team-paste").value=await f.text();});
+get("team-import").addEventListener("click",()=>{try{const data=parsePlayerTeams(get("team-paste").value);const count=saveTeams(data.players);get("team-status").textContent="已儲存 "+Object.keys(data.players).length+" 位；本機合計 "+count+" 位"+(data.errors.length?"；無法解析行數："+data.errors.length:"");}catch(e){get("team-status").textContent=e.message;}});
+get("team-online").addEventListener("click",async()=>{try{const data=await loadOnlineTeams();const count=saveTeams(data.players);get("team-status").textContent="已讀取線上資料 "+Object.keys(data.players).length+" 位；本機合計 "+count+" 位";}catch(e){get("team-status").textContent="線上更新失敗，可直接貼上球員與球隊："+e.message;}});
+get("roster-import").addEventListener("click",()=>{try{roster=parsePastedRoster(fillRosterTeams(get("roster-paste").value,savedTeams()));renderRoster();}catch(error){roster=[];renderRoster();get("roster-status").textContent="名單匯入失敗："+error.message;}});
+get("compare-rosters").addEventListener("click",()=>{try{opponent=parsePastedRoster(fillRosterTeams(get("opponent-paste").value,savedTeams()));updateComparison();}catch(error){opponent=[];updateComparison();get("comparison-status").textContent="對手名單匯入失敗："+error.message;}});
 get("parse-paste").addEventListener("click",()=>load(get("schedule-paste").value));
 get("schedule-file").addEventListener("change",async event=>{const file=event.target.files[0];if(file)load(await file.text());});
 get("week").addEventListener("change",render);
