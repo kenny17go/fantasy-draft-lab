@@ -1,0 +1,28 @@
+name: H2H player-team import tests
+on:
+  push:
+    branches:
+      - feature/h2h-schedule-grid-v1-20261020
+    paths:
+      - 'src/h2h-player-teams.js'
+      - 'src/h2h-schedule.js'
+      - 'tests/h2h-player-teams.test.mjs'
+      - '.github/workflows/test-h2h-player-teams.yml'
+  pull_request:
+    paths:
+      - 'src/h2h-player-teams.js'
+      - 'src/h2h-schedule.js'
+      - 'tests/h2h-player-teams.test.mjs'
+      - '.github/workflows/test-h2h-player-teams.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node tests/h2h-player-teams.test.mjs
