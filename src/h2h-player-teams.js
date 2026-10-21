@@ -3,7 +3,7 @@ const KEY="fantasy-draft-lab:h2h:player-teams:v1";
 export const playerKey=name=>String(name||"").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
 // Supports pasted FantasyPros Yahoo rankings (e.g. "N. Jokic (DEN - C)") and CSV.
 export function parsePlayerTeams(text,knownNames=[]){
- const result={},errors=[],unresolved=[],ambiguous=[];
+ const result={},errors=[],unresolved=[],ambiguous=[],blocked=new Set();
  const names=knownNames.map(name=>({name,key:playerKey(name),parts:String(name).normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9 ]/g,"").trim().split(/\s+/)}));
  const ranking=/^(.+?)\s*\(([A-Z]{2,4})\s*-\s*(?:PG|SG|SF|PF|C|G|F)(?:\s*,\s*(?:PG|SG|SF|PF|C|G|F))*\)/;
  for(const [i,raw] of String(text||"").split(/\r?\n/).entries()){
@@ -33,7 +33,7 @@ export function parsePlayerTeams(text,knownNames=[]){
    if(matches.length!==1){(matches.length?ambiguous:unresolved).push(name);continue;}
    key=matches[0].key;fullName=matches[0].name;
   }
-  if(result[key]&&result[key].team!==team){ambiguous.push(name);delete result[key];continue;}
+  if(result[key]&&result[key].team!==team){ambiguous.push(name);blocked.add(key);delete result[key];continue;}\n  if(blocked.has(key))continue;
   result[key]={name:fullName,team};
  }
  if(!Object.keys(result).length)throw Error("沒有找到可配對球員；可貼 FantasyPros 完整排名或姓名,球隊 CSV");
