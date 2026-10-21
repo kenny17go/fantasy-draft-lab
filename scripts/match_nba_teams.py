@@ -5,7 +5,7 @@ Never overwrite stats, prices or league picks; leave ambiguous players unchanged
 import argparse,datetime,json,re,unicodedata,urllib.request
 from pathlib import Path
 TEAMS=['atl','bos','bkn','cha','chi','cle','dal','den','det','gs','hou','ind','lac','lal','mem','mia','mil','min','no','ny','okc','orl','phi','pho','por','sac','sa','tor','uta','was']
-ALIASES={'gs':'GSW','no':'NOP','ny':'NYK','pho':'PHX','sa':'SAS'}
+ALIASES={'gs':'GSW','no':'NOP','ny':'NYK','pho':'PHX','sa':'SAS','uta':'UTA','was':'WAS'}
 def norm(s):
  s=unicodedata.normalize('NFKD',s).casefold()
  return re.sub('[^a-z0-9]','', ''.join(c for c in s if not unicodedata.combining(c)))
@@ -16,6 +16,8 @@ def fetch():
   with urllib.request.urlopen(req,timeout=20) as response:data=json.load(response)
   athletes=data.get('athletes',[])
   if not athletes:raise ValueError('Missing roster for '+code+'; abort without writing')
+  season=data.get('season',{})
+  if season.get('year')!=2027:raise ValueError('Unexpected season for '+code+': '+str(season))
   for athlete in athletes:
    name=athlete.get('fullName') or athlete.get('displayName')
    if name:names.setdefault(norm(name),set()).add(ALIASES.get(code,code.upper()))
@@ -34,7 +36,7 @@ def main():
  backup=json.loads(args.backup.read_text(encoding='utf-8'))
  if backup.get('format')!='fantasy-draft-lab-backup' or not isinstance(backup.get('projections'),list):raise ValueError('Invalid backup')
  output,report=match(backup,fetch())
- if not report['matched']:raise ValueError('Zero matches: refusing to write')
+ if report['matched']<max(1,int(len(backup['projections'])*0.65)):raise ValueError('Insufficient matches: refusing to write')
  args.output.write_text(json.dumps(output,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
  args.report.write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
  print(report)
