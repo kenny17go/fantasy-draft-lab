@@ -32,6 +32,6 @@ assert.equal(parsed.players[playerKey("Jaylin Williams")],undefined);
 assert.ok(parsed.ambiguous.includes("A. Thompson"));
 assert.ok(parsed.ambiguous.includes("J. Williams"));
 assert.equal(fillRosterTeams("Nikola Jokić",parsed.players),"Nikola Jokić, DEN");
-const conflict=parsePlayerTeams("Nikola Jokic,DEN\nNikola Jokic,LAL\nNikola Jokic,DEN",known);
+const conflict=parsePlayerTeams("Nikola Jokic,DEN\nNikola Jokic,LAL\nNikola Jokic,DEN\nVictor Wembanyama,SAS",known);
 assert.equal(conflict.players[playerKey("Nikola Jokić")],undefined);
 console.log("FantasyPros manual import tests passed");
