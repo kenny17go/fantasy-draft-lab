@@ -10,7 +10,33 @@ const projectionKey="fantasy-draft-lab:v1:projections";
 function yahooPlayers(){try{const rows=JSON.parse(localStorage.getItem(projectionKey)||"[]");return Array.isArray(rows)?rows.filter(p=>p?.player):[];}catch{return [];}}
 function fillPlayerPicker(){const list=yahooPlayers(),search=$("player-search").value.trim().toLowerCase(),picker=$("new-name"),previous=picker.value;picker.replaceChildren();const placeholder=document.createElement("option");placeholder.value="";placeholder.textContent=list.length?"選擇 Yahoo 球員（"+list.length+" 人）":"尚無 Yahoo 預測，請先到球員研究匯入";picker.append(placeholder);const rostered=new Set((data?.teams||[]).flatMap(t=>t.players.map(p=>p.player.toLowerCase())));for(const p of list.filter(p=>p.player.toLowerCase().includes(search)&&!rostered.has(p.player.toLowerCase())).sort((a,b)=>a.player.localeCompare(b.player,"en",{sensitivity:"base"})).slice(0,250)){const opt=document.createElement("option");opt.value=p.player;opt.textContent=p.player;picker.append(opt);}if([...picker.options].some(o=>o.value===previous))picker.value=previous;$("add-hint").textContent="Yahoo 預測已儲存 "+list.length+" 人；下拉僅列出尚未在 14 隊名單的球員。";}
 $("player-search").addEventListener("input",fillPlayerPicker);
-function addPlayer(){if(!data)return;const t=data.teams.find(x=>x.team===$("team").value);if(t.players.length>=13){$("status").textContent="此隊已達 13 人";return;}const name=$("new-name").value.trim(),nba=$("new-nba").value.trim().toUpperCase();if(!name||!/^[A-Z]{2,3}$/.test(nba)){ $("status").textContent="請填寫球員姓名與 NBA 球隊代碼";return;}if(data.teams.some(x=>x.players.some(p=>p.player.toLowerCase()===name.toLowerCase()))){$("status").textContent="此球員已存在";return;}const p={player:name,nbaTeam:nba,rosterSlot:"ACTIVE"};t.players.push(p);syncCounts();persist();render();$("team").value=t.team;renderTeam();$("new-name").value="";$("new-nba").value="";fillPlayerPicker();$("status").textContent="已新增球員";}
+
+// The Yahoo per-game localStorage rows do not contain nbaTeam. Look it up
+// from the bundled Top 250 archive instead of requiring users to type a code.
+const nbaTeamByPlayer=new Map();
+const normalizePlayerName=name=>String(name||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim().toLowerCase();
+async function loadNbaTeamLookup(){
+ try{
+  const response=await fetch("./data/yahoo-2026-27-top250.json",{cache:"no-cache"});
+  if(!response.ok)throw Error("HTTP "+response.status);
+  const doc=await response.json();
+  for(const p of doc.players||[]){
+   if(p.player&&/^[A-Z]{2,3}$/.test(p.nbaTeam||""))nbaTeamByPlayer.set(normalizePlayerName(p.player),p.nbaTeam);
+  }
+  updateSelectedNbaTeam();
+ }catch(err){console.warn("NBA 球隊代碼對照表載入失敗",err);}
+}
+function updateSelectedNbaTeam(){
+ const name=$("new-name").value;
+ if(!name){$("new-nba").value="";return;}
+ const code=nbaTeamByPlayer.get(normalizePlayerName(name));
+ if(code)$("new-nba").value=code;
+ else $("new-nba").value="";
+}
+$("new-name").addEventListener("change",updateSelectedNbaTeam);
+loadNbaTeamLookup();
+
+function addPlayer(){if(!data)return;const t=data.teams.find(x=>x.team===$("team").value);if(t.players.length>=13){$("status").textContent="此隊已達 13 人";return;}const name=$("new-name").value.trim(),nba=($("new-nba").value.trim()||nbaTeamByPlayer.get(normalizePlayerName(name))||"").toUpperCase();if(!name||!/^[A-Z]{2,3}$/.test(nba)){ $("status").textContent="請填寫球員姓名與 NBA 球隊代碼";return;}if(data.teams.some(x=>x.players.some(p=>p.player.toLowerCase()===name.toLowerCase()))){$("status").textContent="此球員已存在";return;}const p={player:name,nbaTeam:nba,rosterSlot:"ACTIVE"};t.players.push(p);syncCounts();persist();render();$("team").value=t.team;renderTeam();$("new-name").value="";$("new-nba").value="";fillPlayerPicker();$("status").textContent="已新增球員";}
 function render(){const prev=$("team").value;$("team").replaceChildren();$("players").replaceChildren();if(!data){$("status").textContent="尚未匯入名單";$("summary").textContent="";return;}for(const t of data.teams){const o=document.createElement("option");o.value=t.team;o.textContent=t.team;$("team").append(o);}$("team").value=data.teams.some(t=>t.team===prev)?prev:data.teams[0].team;renderTeam();fillPlayerPicker();}
 function nbaFor(p){return p.nbaTeam||data.picksByYahooRank?.find(x=>x.player.toLowerCase()===p.player.toLowerCase())?.nbaTeam||"—";}
 function renderTeam(){if(!data)return;const t=data.teams.find(t=>t.team===$("team").value);if(!t)return;const il=t.players.filter(p=>p.rosterSlot==="IL").length;$("summary").textContent=t.team+"：一般名額 "+(t.players.length-il)+" 人／IL "+il+" 人／合計 "+t.players.length+" 人"+(t.players.length===13&&!il?"；請人工選擇 1 位 IL":"");$("players").replaceChildren();for(const p of t.players){const div=document.createElement("div");div.className="player";const name=document.createElement("span");name.className="player-name";name.textContent=p.player+" · "+nbaFor(p);const label=document.createElement("label"),cb=document.createElement("input");cb.type="checkbox";cb.checked=p.rosterSlot==="IL";label.append(cb,document.createTextNode("IL"));div.append(name,label);$("players").append(div);const edit=document.createElement("button");edit.type="button";edit.textContent="修改";edit.className="secondary";div.append(edit);const del=document.createElement("button");del.type="button";del.textContent="移除";del.className="secondary";div.append(del);del.addEventListener("click",()=>{if(!confirm("確定將 "+p.player+" 從 "+t.team+" 名單移除？"))return;t.players=t.players.filter(x=>x!==p);syncCounts();persist();renderTeam();$("status").textContent="已移除球員";fillPlayerPicker();});edit.addEventListener("click",()=>editPlayer(t,p));cb.addEventListener("change",()=>{if(cb.checked)for(const other of t.players)other.rosterSlot=other===p?"IL":"ACTIVE";else p.rosterSlot="ACTIVE";try{persist();$("status").textContent="IL 標記已保存在此瀏覽器";renderTeam();}catch(e){$("status").textContent="儲存失敗："+e.message;}});}}
