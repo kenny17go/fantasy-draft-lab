@@ -146,6 +146,35 @@ $("yahoo-import").addEventListener("change",async e=>{const file=e.target.files[
 
 $("yahoo-paste-import").addEventListener("click",()=>{try{const source=$("yahoo-paste").value.trim();if(!source)throw Error("請先貼上 Yahoo 預測表格");let incoming;try{incoming=parseYahooMobileText(source);}catch(mobileError){if(/^\s*Players\t/i.test(source)){incoming=parseProjections(yahooProjectedToCsv(source));}else{throw mobileError;}}const players=mergeProjectionPlayers(projectionPlayers,incoming);localStorage.setItem(projectionsKey,JSON.stringify(players));projectionPlayers=players;render();$("projection-status").textContent="Yahoo 本次解析 "+incoming.length+" 人，合併後共 "+players.length+" 人（同名球員以新資料更新）；已保存在本機。";}catch(err){$("projection-status").textContent="貼上解析失敗："+err.message;}});
 
+// Import the preserved Top 250 JSON without losing the user's existing projections.
+$("yahoo-top250-import").addEventListener("change",async e=>{
+ const file=e.target.files?.[0];if(!file)return;
+ try{
+  const doc=JSON.parse(await file.text());
+  if(doc.format!=="fantasy-draft-lab-yahoo-projections"||!Array.isArray(doc.players))throw Error("不是 Fantasy Draft Lab Top 250 JSON");
+  const incoming=[],missing=[];
+  for(const p of doc.players){
+   const v=p.perGame;
+   if(!v||!Number.isFinite(Number(p.seasonTotals?.gp))||Number(p.seasonTotals.gp)<=0){missing.push(p.player);continue;}
+   const item={player:p.player,positions:p.positions,gp:Number(p.seasonTotals.gp)};
+   for(const k of ["fgm","fga","ftm","fta","three","pts","reb","ast","stl","blk","tov"])item[k]=Number(v[k]);
+   if(!item.player||!Array.isArray(item.positions)||!item.positions.length||Object.values(item).some(x=>typeof x==="number"&&!Number.isFinite(x))){missing.push(p.player);continue;}
+   incoming.push(item);
+  }
+  if(!incoming.length)throw Error("沒有可匯入的有效九項預測");
+  const existing=JSON.parse(localStorage.getItem(projectionsKey)||"[]");
+  const base=Array.isArray(existing)?existing:[];
+  const merged=mergeProjectionPlayers(base,incoming);
+  const oldCount=base.length,added=merged.length-oldCount;
+  if(!confirm("檔案共有 "+doc.players.length+" 人，其中 "+incoming.length+" 人具備可用九項預測、"+missing.length+" 人缺少預測。\\n將合併到目前 "+oldCount+" 人，預計新增 "+added+" 人；不會刪除原有資料。確定匯入？"))return;
+  localStorage.setItem(projectionsKey+":before-top250-import:"+Date.now(),JSON.stringify(base));
+  localStorage.setItem(projectionsKey,JSON.stringify(merged));
+  projectionPlayers=merged;render();
+  $("projection-status").textContent="Top 250 匯入完成：檔案 "+doc.players.length+" 人、可用 "+incoming.length+" 人、缺預測 "+missing.length+" 人；原有 "+oldCount+" 人，新增 "+added+" 人，合併後 "+merged.length+" 人。缺預測："+missing.join("、")+"。已自動備份匯入前資料。";
+ }catch(err){$("projection-status").textContent="Top 250 匯入失敗："+err.message;}
+ finally{e.target.value="";}
+});
+
 const fullBackupKey="fantasy-draft-lab:v1:prices";
 function downloadJson(data,name){const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 $("export-all-csv").addEventListener("click",()=>{try{const prices=JSON.parse(localStorage.getItem(fullBackupKey)||"[]");const csv=backupToCsv(makeBackup(load("h2h"),load("roto"),projectionPlayers,prices));const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="fantasy-draft-lab-full-data.csv";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);feedback("CSV 已匯出；完整還原請使用 JSON 備份");}catch(e){feedback("CSV 匯出失敗："+e.message);}});
