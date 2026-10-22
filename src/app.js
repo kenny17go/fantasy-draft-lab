@@ -299,3 +299,16 @@ $("batch-clear").addEventListener("click",async()=>{if(!confirm("確定清除目
 batchResult=loadArchive();showBatch();restoreMockArchive();
 
 async function restoreMockArchive(){const currentMode=mode;try{const saved=await readMockArchive(mockArchiveKey(currentMode));if(currentMode===mode&&saved?.results?.length){batchResult=normalizeArchive(saved);showBatch();}}catch(e){console.warn("Mock archive load failed",e);}}
+
+
+const projectionLookup=document.getElementById("projection-lookup-input");
+if(projectionLookup)projectionLookup.addEventListener("input",()=>{
+ const term=projectionLookup.value.trim().toLowerCase(),output=document.getElementById("projection-lookup-result");
+ const rows=(()=>{try{const v=JSON.parse(localStorage.getItem("fantasy-draft-lab:v1:projections")||"[]");return Array.isArray(v)?v:[];}catch{return [];}})();
+ if(!term){output.textContent="目前已儲存 "+rows.length+" 位 Yahoo 預測；輸入姓名查詢。";return;}
+ const matches=rows.filter(p=>String(p.player||"").toLowerCase().includes(term)).slice(0,8);
+ output.replaceChildren();
+ if(!matches.length){output.textContent="已儲存 "+rows.length+" 人，但查無「"+projectionLookup.value+"」；請確認 Yahoo 原始資料是否已匯入。";return;}
+ const count=document.createElement("p");count.textContent="找到 "+matches.length+" 位（已儲存 "+rows.length+" 人）";output.append(count);
+ for(const p of matches){const row=document.createElement("p");row.textContent=p.player+"｜GP "+p.gp+"｜PTS "+p.pts+"｜REB "+p.reb+"｜AST "+p.ast+"｜3PM "+p.three+"｜STL "+p.stl+"｜BLK "+p.blk+"｜TO "+p.tov;output.append(row);}
+});
