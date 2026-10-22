@@ -373,5 +373,23 @@ if(projectionLookup)projectionLookup.addEventListener("input",()=>{
  output.replaceChildren();
  if(!matches.length){output.textContent="已儲存 "+rows.length+" 人，但查無「"+projectionLookup.value+"」；請確認 Yahoo 原始資料是否已匯入。";return;}
  const count=document.createElement("p");count.textContent="找到 "+matches.length+" 位（已儲存 "+rows.length+" 人）";output.append(count);
- for(const p of matches){const row=document.createElement("p");row.textContent=p.player+"｜GP "+p.gp+"｜PTS "+p.pts+"｜REB "+p.reb+"｜AST "+p.ast+"｜3PM "+p.three+"｜STL "+p.stl+"｜BLK "+p.blk+"｜TO "+p.tov;output.append(row);}
+ const formatStat=n=>Number.isFinite(Number(n))?Number(n).toFixed(2):"—";
+ for(const p of matches){
+  const card=document.createElement("section");card.className="projection-lookup-card";
+  const heading=document.createElement("h4");heading.textContent=p.player+" · GP "+(Number.isFinite(Number(p.gp))?Number(p.gp).toFixed(1):"—");card.append(heading);
+  const table=document.createElement("table");table.className="projection-lookup-table";
+  const body=document.createElement("tbody");
+  const fg=Number(p.fga)>0?100*Number(p.fgm)/Number(p.fga):NaN;
+  const ft=Number(p.fta)>0?100*Number(p.ftm)/Number(p.fta):NaN;
+  const stats=[["FG%",Number.isFinite(fg)?fg.toFixed(2)+"%":"—"],["FT%",Number.isFinite(ft)?ft.toFixed(2)+"%":"—"],["3PM",formatStat(p.three)],["PTS",formatStat(p.pts)],["REB",formatStat(p.reb)],["AST",formatStat(p.ast)],["STL",formatStat(p.stl)],["BLK",formatStat(p.blk)],["TO",formatStat(p.tov)]];
+  for(let i=0;i<stats.length;i+=3){
+   const tr=document.createElement("tr");
+   for(const [label,value] of stats.slice(i,i+3)){
+    const td=document.createElement("td");const name=document.createElement("span");name.className="projection-lookup-label";name.textContent=label;
+    const num=document.createElement("strong");num.textContent=value;td.append(name,num);tr.append(td);
+   }
+   body.append(tr);
+  }
+  table.append(body);card.append(table);output.append(card);
+ }
 });
