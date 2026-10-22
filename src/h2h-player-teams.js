@@ -33,7 +33,8 @@ export function parsePlayerTeams(text,knownNames=[]){
    if(matches.length!==1){(matches.length?ambiguous:unresolved).push(name);continue;}
    key=matches[0].key;fullName=matches[0].name;
   }
-  if(result[key]&&result[key].team!==team){ambiguous.push(name);blocked.add(key);delete result[key];continue;}\n  if(blocked.has(key))continue;
+  if(result[key]&&result[key].team!==team){ambiguous.push(name);blocked.add(key);delete result[key];continue;}
+  if(blocked.has(key))continue;
   result[key]={name:fullName,team};
  }
  if(!Object.keys(result).length)throw Error("沒有找到可配對球員；可貼 FantasyPros 完整排名或姓名,球隊 CSV");
