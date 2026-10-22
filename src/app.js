@@ -137,6 +137,43 @@ function displayRankings(players){
 document.getElementById("projections-import").addEventListener("change",async e=>{const file=e.target.files[0];if(!file)return;try{const players=parseProjections(await file.text());if(players.length<2)throw Error("至少需要兩位球員");displayRankings(players);localStorage.setItem(projectionsKey,JSON.stringify(players));}catch(err){document.getElementById("projection-status").textContent="匯入失敗："+err.message;}finally{e.target.value="";}});
 try{const saved=localStorage.getItem(projectionsKey);if(saved){const players=JSON.parse(saved);if(Array.isArray(players)&&players.length>=2)displayRankings(players);}}catch(err){console.warn("預測資料無法恢復",err);}
 
+// Bundled Top 250 archive: add only absent players; never overwrite existing iPhone projections.
+function archiveProjection(p){
+ const short=p.shortTermFallback;
+ const v=p.perGame||short;
+ const gp=p.perGame?Number(p.seasonTotals?.gp):Number(short?.gp);
+ if(!v||!Number.isFinite(gp)||gp<=0)return null; // Yahoo NA stays missing.
+ const item={player:p.player,positions:p.positions,gp,
+  projectionSource:p.perGame?"Yahoo 2026-27 Pre-Season":"Yahoo Next 14 Days (short-term fallback)"};
+ for(const k of ["fgm","fga","ftm","fta","three","pts","reb","ast","stl","blk","tov"]){
+  const n=Number(v[k]);if(!Number.isFinite(n)||n<0)return null;
+  item[k]=p.perGame?n:n/gp;
+ }
+ return item.player&&Array.isArray(item.positions)&&item.positions.length?item:null;
+}
+async function loadBundledTop250(){
+ try{
+  const response=await fetch("./data/yahoo-2026-27-top250.json",{cache:"no-cache"});
+  if(!response.ok)throw Error("HTTP "+response.status);
+  const doc=await response.json();
+  if(doc.format!=="fantasy-draft-lab-yahoo-projections"||doc.players?.length!==250)throw Error("Top 250 格式不符");
+  const incoming=doc.players.map(archiveProjection).filter(Boolean);
+  if(incoming.length!==249)throw Error("有效預測人數不符");
+  const stored=JSON.parse(localStorage.getItem(projectionsKey)||"[]");
+  const base=Array.isArray(stored)?stored:[];
+  const names=new Set(base.map(p=>p.player?.trim().toLocaleLowerCase()));
+  const additions=incoming.filter(p=>!names.has(p.player.trim().toLocaleLowerCase()));
+  if(additions.length){
+   const merged=[...base,...additions];
+   if(base.length)localStorage.setItem(projectionsKey+":before-bundled-20261022",JSON.stringify(base));
+   localStorage.setItem(projectionsKey,JSON.stringify(merged));
+   projectionPlayers=merged;render();
+  }else if(!projectionPlayers.length&&base.length>=2){projectionPlayers=base;render();}
+  $("projection-status").textContent="Yahoo Top 250 已載入：可用預測 249 人（236 人賽季預測、13 人 Next 14 Days 短期替代）；Kevin Porter Jr. 為 NA、不列入預測排名。保留原有資料，這次新增 "+additions.length+" 人。";
+ }catch(err){console.warn("內建 Top 250 載入失敗",err);$("projection-status").textContent="內建 Top 250 載入失敗；本機資料未變更："+err.message;}
+}
+loadBundledTop250();
+
 
 const labels={fgPct:"FG%",ftPct:"FT%",three:"3PM",pts:"PTS",reb:"REB",ast:"AST",stl:"STL",blk:"BLK",tov:"TO"};
 for(const cat of CATEGORIES){const label=document.createElement("label");label.className="punt-choice";const cb=document.createElement("input");cb.type="checkbox";cb.addEventListener("change",()=>{if(cb.checked)punt.add(cat);else punt.delete(cat);if(projectionPlayers.length)displayRankings(projectionPlayers);});label.append(cb,document.createTextNode(" Punt "+labels[cat]));$("punt-options").append(label);}
@@ -154,11 +191,8 @@ $("yahoo-top250-import").addEventListener("change",async e=>{
   if(doc.format!=="fantasy-draft-lab-yahoo-projections"||!Array.isArray(doc.players))throw Error("不是 Fantasy Draft Lab Top 250 JSON");
   const incoming=[],missing=[];
   for(const p of doc.players){
-   const v=p.perGame;
-   if(!v||!Number.isFinite(Number(p.seasonTotals?.gp))||Number(p.seasonTotals.gp)<=0){missing.push(p.player);continue;}
-   const item={player:p.player,positions:p.positions,gp:Number(p.seasonTotals.gp)};
-   for(const k of ["fgm","fga","ftm","fta","three","pts","reb","ast","stl","blk","tov"])item[k]=Number(v[k]);
-   if(!item.player||!Array.isArray(item.positions)||!item.positions.length||Object.values(item).some(x=>typeof x==="number"&&!Number.isFinite(x))){missing.push(p.player);continue;}
+   const item=archiveProjection(p);
+   if(!item){missing.push(p.player);continue;}
    incoming.push(item);
   }
   if(!incoming.length)throw Error("沒有可匯入的有效九項預測");
