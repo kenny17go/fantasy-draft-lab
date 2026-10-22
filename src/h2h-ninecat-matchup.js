@@ -3,14 +3,16 @@ const $=id=>document.getElementById(id);
 const rosterKey="fantasy-draft-lab:h2h:yahoo-rosters:v1",projectionKey="fantasy-draft-lab:v1:projections";
 const fields=[["fg","FG%",true],["ft","FT%",true],["three","3PM"],["pts","PTS"],["reb","REB"],["ast","AST"],["stl","STL"],["blk","BLK"],["tov","TO"]];
 const numbers=["fgm","fga","ftm","fta","three","pts","reb","ast","stl","blk","tov"];
-const key=name=>String(name||"").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
+const key=name=>String(name||"").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"").replace(/(iii|ii|iv|jr|sr)$/,"");
+const aliases=new Map([["og anunoby","og anunoby"],["kel el ware","kelel ware"]].map(([a,b])=>[key(a),key(b)]));
+const playerKey=name=>aliases.get(key(name))||key(name);
 let games=[],loadError="";
 function read(keyName){try{return JSON.parse(localStorage.getItem(keyName)||"null");}catch{return null;}}
 function weekly(team,projections,counts){
  const totals=Object.fromEntries(numbers.map(n=>[n,0])),missing=[],inactive=[],included=[];
  for(const p of team.players){
   if(p.rosterSlot==="IL"){inactive.push(p.player);continue;}
-  const found=projections.get(key(p.player));
+  const found=projections.get(playerKey(p.player));
   if(!found){missing.push(p.player);continue;}
   const gp=counts[p.nbaTeam]||0;
   if(!gp)continue;
@@ -33,11 +35,16 @@ function render(){
  let start;try{start=weekStart($("compare-week").value);}catch{status.textContent="比較週次無效。";return;}
  const end=new Date(start+"T12:00:00Z");end.setUTCDate(end.getUTCDate()+7);const finish=end.toISOString().slice(0,10);
  const counts={};for(const g of games){if(g.date<start||g.date>=finish)continue;counts[g.home]=(counts[g.home]||0)+1;counts[g.away]=(counts[g.away]||0)+1;}
- const projections=new Map(raw.filter(p=>p?.player).map(p=>[key(p.player),p]));
+ const projections=new Map(raw.filter(p=>p?.player).map(p=>[playerKey(p.player),p]));
+ const projectionCount=raw.filter(p=>p?.player).length;
  const left=weekly(a,projections,counts),right=weekly(b,projections,counts);
  const missing=[...new Set([...left.missing,...right.missing])];
- if(missing.length){status.textContent="預測資料不足：缺少 "+missing.length+" 位球員（"+missing.slice(0,8).join("、")+(missing.length>8?" 等":"")+"）。下表僅顯示已配對球員的部分預估，不能判定完整 9-Cat 勝負。";}
- else status.textContent="Yahoo 每場預測 × 本週排定場次；已排除人工 IL。數值為模型預估，非即時戰績。";
+ const expected=a.players.filter(p=>p.rosterSlot!=="IL").length+b.players.filter(p=>p.rosterSlot!=="IL").length;
+ const matched=expected-left.missing.length-right.missing.length;
+ const diagnostic="Yahoo 已儲存 "+projectionCount+" 人；本次兩隊成功配對 "+matched+"/"+expected+" 人。";
+
+ if(missing.length){status.textContent=diagnostic+" 預測資料不足：缺少 "+missing.length+" 位球員（"+missing.slice(0,8).join("、")+(missing.length>8?" 等":"")+"）。下表僅顯示已配對球員的部分預估，不能判定完整 9-Cat 勝負。";}
+ else status.textContent=diagnostic+" Yahoo 每場預測 × 本週排定場次；已排除人工 IL。數值為模型預估，非即時戰績。";
  const complete=missing.length===0;
  const wrap=document.createElement("div");wrap.className="ninecat-scroll";const table=document.createElement("table");table.className="ninecat-matchup";
  const thead=document.createElement("thead"),hr=document.createElement("tr");
