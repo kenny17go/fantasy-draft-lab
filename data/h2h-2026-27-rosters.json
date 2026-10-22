@@ -1,0 +1,954 @@
+{
+  "format": "fantasy-draft-lab-h2h-draft-results",
+  "version": 1,
+  "source": "Yahoo Fantasy Basketball user-provided Roster Status",
+  "season": "2026-27",
+  "teamCount": 14,
+  "rosteredPlayerCount": 172,
+  "teams": [
+    {
+      "team": "Ben's Tip-Top Team",
+      "playerCount": 12,
+      "players": [
+        {
+          "player": "Trey Murphy III",
+          "nbaTeam": "NOP",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Chet Holmgren",
+          "nbaTeam": "OKC",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "James Harden",
+          "nbaTeam": "CLE",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Domantas Sabonis",
+          "nbaTeam": "SAC",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Onyeka Okongwu",
+          "nbaTeam": "ATL",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Dyson Daniels",
+          "nbaTeam": "ATL",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Day'Ron Sharpe",
+          "nbaTeam": "BKN",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Neemias Queta",
+          "nbaTeam": "BOS",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Cason Wallace",
+          "nbaTeam": "OKC",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Peyton Watson",
+          "nbaTeam": "CLE",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Kevin Porter Jr.",
+          "nbaTeam": "MIL",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Jrue Holiday",
+          "nbaTeam": "POR",
+          "rosterSlot": "ACTIVE"
+        }
+      ]
+    },
+    {
+      "team": "Chicken",
+      "playerCount": 13,
+      "players": [
+        {
+          "player": "Jalen Duren",
+          "nbaTeam": "DET",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Walker Kessler",
+          "nbaTeam": "LAL",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Keyonte George",
+          "nbaTeam": "UTA",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Franz Wagner",
+          "nbaTeam": "ORL",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Nickeil Alexander-Walker",
+          "nbaTeam": "ATL",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Matas Buzelis",
+          "nbaTeam": "CHI",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Julius Randle",
+          "nbaTeam": "BKN",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Jaden McDaniels",
+          "nbaTeam": "MIN",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Ty Jerome",
+          "nbaTeam": "MEM",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "John Collins",
+          "nbaTeam": "DET",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Keegan Murray",
+          "nbaTeam": "SAC",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Tobias Harris",
+          "nbaTeam": "SAS",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Keaton Wagler",
+          "nbaTeam": "LAC",
+          "rosterSlot": "ACTIVE"
+        }
+      ]
+    },
+    {
+      "team": "Chris Chou's Team",
+      "playerCount": 13,
+      "players": [
+        {
+          "player": "Anthony Edwards",
+          "nbaTeam": "MIN",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Cooper Flagg",
+          "nbaTeam": "DAL",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "LeBron James",
+          "nbaTeam": "PHI",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Cameron Boozer",
+          "nbaTeam": "MEM",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Stephon Castle",
+          "nbaTeam": "SAS",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Rudy Gobert",
+          "nbaTeam": "MIN",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Norman Powell",
+          "nbaTeam": "CHI",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Coby White",
+          "nbaTeam": "CHA",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "AJ Dybantsa",
+          "nbaTeam": "WAS",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Miles Bridges",
+          "nbaTeam": "PHX",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Zach LaVine",
+          "nbaTeam": "SAC",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Nic Claxton",
+          "nbaTeam": "CHI",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Herbert Jones",
+          "nbaTeam": "NOP",
+          "rosterSlot": "ACTIVE"
+        }
+      ]
+    },
+    {
+      "team": "Ellis",
+      "playerCount": 12,
+      "players": [
+        {
+          "player": "Tyrese Maxey",
+          "nbaTeam": "PHI",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Jamal Murray",
+          "nbaTeam": "DEN",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Lauri Markkanen",
+          "nbaTeam": "UTA",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Jaylen Brown",
+          "nbaTeam": "PHI",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Payton Pritchard",
+          "nbaTeam": "BOS",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Isaiah Hartenstein",
+          "nbaTeam": "OKC",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Khaman Maluach",
+          "nbaTeam": "PHX",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Wendell Carter Jr.",
+          "nbaTeam": "ORL",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Quentin Grimes",
+          "nbaTeam": "LAL",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Jonathan Kuminga",
+          "nbaTeam": "MIN",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Reed Sheppard",
+          "nbaTeam": "HOU",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Pelle Larsson",
+          "nbaTeam": "MIA",
+          "rosterSlot": "ACTIVE"
+        }
+      ]
+    },
+    {
+      "team": "George's Genius Team",
+      "playerCount": 12,
+      "players": [
+        {
+          "player": "Jayson Tatum",
+          "nbaTeam": "BOS",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Jalen Johnson",
+          "nbaTeam": "ATL",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Bam Adebayo",
+          "nbaTeam": "MIA",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Derrick White",
+          "nbaTeam": "BOS",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Zion Williamson",
+          "nbaTeam": "NOP",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Ayo Dosunmu",
+          "nbaTeam": "MIN",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Rui Hachimura",
+          "nbaTeam": "LAC",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Aaron Gordon",
+          "nbaTeam": "DEN",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "P.J. Washington",
+          "nbaTeam": "DAL",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Anthony Black",
+          "nbaTeam": "ORL",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Tari Eason",
+          "nbaTeam": "HOU",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Isaiah Jackson",
+          "nbaTeam": "LAC",
+          "rosterSlot": "ACTIVE"
+        }
+      ]
+    },
+    {
+      "team": "In-and-Out",
+      "playerCount": 13,
+      "players": [
+        {
+          "player": "Nikola Jokić",
+          "nbaTeam": "DEN",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Shai Gilgeous-Alexander",
+          "nbaTeam": "OKC",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Karl-Anthony Towns",
+          "nbaTeam": "NYK",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Fred VanVleet",
+          "nbaTeam": "HOU",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "DeMar DeRozan",
+          "nbaTeam": "DEN",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Jeremiah Fears",
+          "nbaTeam": "NOP",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Dillon Brooks",
+          "nbaTeam": "PHX",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Christian Braun",
+          "nbaTeam": "DEN",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Devin Vassell",
+          "nbaTeam": "SAS",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Mitchell Robinson",
+          "nbaTeam": "BOS",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Kristaps Porziņģis",
+          "nbaTeam": "GSW",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Aday Mara",
+          "nbaTeam": "OKC",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Zaccharie Risacher",
+          "nbaTeam": "DAL",
+          "rosterSlot": "ACTIVE"
+        }
+      ]
+    },
+    {
+      "team": "Nick's Team",
+      "playerCount": 12,
+      "players": [
+        {
+          "player": "Luka Dončić",
+          "nbaTeam": "LAL",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Austin Reaves",
+          "nbaTeam": "LAL",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Josh Giddey",
+          "nbaTeam": "CHI",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Alex Sarr",
+          "nbaTeam": "WAS",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Dejounte Murray",
+          "nbaTeam": "NOP",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Darryn Peterson",
+          "nbaTeam": "UTA",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Andrew Nembhard",
+          "nbaTeam": "IND",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Kyshawn George",
+          "nbaTeam": "WAS",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Yves Missi",
+          "nbaTeam": "NOP",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Cameron Johnson",
+          "nbaTeam": "DEN",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Jimmy Butler III",
+          "nbaTeam": "GSW",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Aaron Nesmith",
+          "nbaTeam": "IND",
+          "rosterSlot": "ACTIVE"
+        }
+      ]
+    },
+    {
+      "team": "Oracle of Mountain View",
+      "playerCount": 12,
+      "players": [
+        {
+          "player": "Tyrese Haliburton",
+          "nbaTeam": "IND",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Donovan Mitchell",
+          "nbaTeam": "CLE",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "LaMelo Ball",
+          "nbaTeam": "MIN",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Jaren Jackson Jr.",
+          "nbaTeam": "UTA",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Cedric Coward",
+          "nbaTeam": "MEM",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Toumani Camara",
+          "nbaTeam": "POR",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Collin Gillespie",
+          "nbaTeam": "PHX",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Ajay Mitchell",
+          "nbaTeam": "OKC",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Gui Santos",
+          "nbaTeam": "GSW",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Jusuf Nurkić",
+          "nbaTeam": "UTA",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Isaiah Stewart",
+          "nbaTeam": "MEM",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Keldon Johnson",
+          "nbaTeam": "SAS",
+          "rosterSlot": "ACTIVE"
+        }
+      ]
+    },
+    {
+      "team": "Ray's Rad Team",
+      "playerCount": 12,
+      "players": [
+        {
+          "player": "Trae Young",
+          "nbaTeam": "WAS",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Amen Thompson",
+          "nbaTeam": "HOU",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Alperen Şengün",
+          "nbaTeam": "HOU",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Evan Mobley",
+          "nbaTeam": "CLE",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Darius Garland",
+          "nbaTeam": "LAC",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Jarrett Allen",
+          "nbaTeam": "CLE",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Sandro Mamukelashvili",
+          "nbaTeam": "LAL",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Davion Mitchell",
+          "nbaTeam": "MIA",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Jalen Green",
+          "nbaTeam": "PHX",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Ace Bailey",
+          "nbaTeam": "UTA",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Draymond Green",
+          "nbaTeam": "GSW",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Mikel Brown Jr.",
+          "nbaTeam": "BKN",
+          "rosterSlot": "ACTIVE"
+        }
+      ]
+    },
+    {
+      "team": "Scott",
+      "playerCount": 12,
+      "players": [
+        {
+          "player": "Giannis Antetokounmpo",
+          "nbaTeam": "MIA",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Kevin Durant",
+          "nbaTeam": "HOU",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Stephen Curry",
+          "nbaTeam": "GSW",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Paolo Banchero",
+          "nbaTeam": "ORL",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "De'Aaron Fox",
+          "nbaTeam": "SAS",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Derik Queen",
+          "nbaTeam": "NOP",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Yaxel Lendeborg",
+          "nbaTeam": "GSW",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Daniel Gafford",
+          "nbaTeam": "DAL",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "RJ Barrett",
+          "nbaTeam": "TOR",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Tre Jones",
+          "nbaTeam": "CHI",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Saddiq Bey",
+          "nbaTeam": "NOP",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Jalen Smith",
+          "nbaTeam": "CHI",
+          "rosterSlot": "ACTIVE"
+        }
+      ]
+    },
+    {
+      "team": "Tony's Team",
+      "playerCount": 12,
+      "players": [
+        {
+          "player": "Cade Cunningham",
+          "nbaTeam": "DET",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Desmond Bane",
+          "nbaTeam": "ORL",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Ivica Zubac",
+          "nbaTeam": "IND",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Damian Lillard",
+          "nbaTeam": "POR",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Joel Embiid",
+          "nbaTeam": "PHI",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Pascal Siakam",
+          "nbaTeam": "IND",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Michael Porter Jr.",
+          "nbaTeam": "BKN",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Dylan Harper",
+          "nbaTeam": "SAS",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "CJ McCollum",
+          "nbaTeam": "ATL",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Myles Turner",
+          "nbaTeam": "MIL",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Jaime Jaquez Jr.",
+          "nbaTeam": "MIL",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Nikola Vučević",
+          "nbaTeam": "ORL",
+          "rosterSlot": "ACTIVE"
+        }
+      ]
+    },
+    {
+      "team": "kenny's Team",
+      "playerCount": 13,
+      "players": [
+        {
+          "player": "Devin Booker",
+          "nbaTeam": "PHX",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Jalen Brunson",
+          "nbaTeam": "NYK",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Jalen Williams",
+          "nbaTeam": "OKC",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Deni Avdija",
+          "nbaTeam": "POR",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "OG Anunoby",
+          "nbaTeam": "NYK",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Kel'el Ware",
+          "nbaTeam": "MIL",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Paul George",
+          "nbaTeam": "BOS",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Mikal Bridges",
+          "nbaTeam": "NYK",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Ja Morant",
+          "nbaTeam": "POR",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Immanuel Quickley",
+          "nbaTeam": "TOR",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Brandon Ingram",
+          "nbaTeam": "LAC",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Collin Murray-Boyles",
+          "nbaTeam": "TOR",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Bobby Portis Jr.",
+          "nbaTeam": "MIA",
+          "rosterSlot": "ACTIVE"
+        }
+      ]
+    },
+    {
+      "team": "tbmaker",
+      "playerCount": 12,
+      "players": [
+        {
+          "player": "Victor Wembanyama",
+          "nbaTeam": "SAS",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Brandon Miller",
+          "nbaTeam": "CHA",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Donovan Clingan",
+          "nbaTeam": "POR",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Ryan Rollins",
+          "nbaTeam": "MIL",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Tyler Herro",
+          "nbaTeam": "MIL",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Kon Knueppel",
+          "nbaTeam": "CHA",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Caleb Wilson",
+          "nbaTeam": "CHI",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Josh Hart",
+          "nbaTeam": "NYK",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Darius Acuff Jr.",
+          "nbaTeam": "SAC",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Jakob Poeltl",
+          "nbaTeam": "TOR",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Moussa Diabaté",
+          "nbaTeam": "CHA",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Egor Dëmin",
+          "nbaTeam": "BKN",
+          "rosterSlot": "ACTIVE"
+        }
+      ]
+    },
+    {
+      "team": "俠's Grand Team",
+      "playerCount": 12,
+      "players": [
+        {
+          "player": "Scottie Barnes",
+          "nbaTeam": "TOR",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Kawhi Leonard",
+          "nbaTeam": "TOR",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Kyrie Irving",
+          "nbaTeam": "DAL",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Anthony Davis",
+          "nbaTeam": "WAS",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Naz Reid",
+          "nbaTeam": "CHA",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Zach Edey",
+          "nbaTeam": "MEM",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Ausar Thompson",
+          "nbaTeam": "DET",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "VJ Edgecombe",
+          "nbaTeam": "PHI",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Andrew Wiggins",
+          "nbaTeam": "MIA",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Jalen Suggs",
+          "nbaTeam": "ORL",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Jabari Smith Jr.",
+          "nbaTeam": "HOU",
+          "rosterSlot": "ACTIVE"
+        },
+        {
+          "player": "Brandin Podziemski",
+          "nbaTeam": "GSW",
+          "rosterSlot": "ACTIVE"
+        }
+      ]
+    }
+  ]
+}
